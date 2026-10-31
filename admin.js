@@ -1,0 +1,362 @@
+(function(){
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R=n=>'Rs. '+Math.round(n).toLocaleString('en-US');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+const ROOT=$('#app'),PAGE=ROOT.dataset.ap;
+/* DEMO ONLY: these credentials sit in the page code, so anyone can read them.
+   A real site must check the login on your server. */
+const CRED={e:'admin@gmail.com',p:'admin1234'};
+const iso=d=>d.toISOString().slice(0,10);
+const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
+const fdate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+/* ---------- login ---------- */
+if(PAGE=='login'){
+ if(store.get('gi-admin',null)){location.replace('dashboard.html');return}
+ $('#logo').src=IM.logo;
+ $('#pwt').onclick=()=>{const p=$('#pw');const s=p.type=='password';p.type=s?'text':'password';$('#pwt').textContent=s?'Hide':'Show'};
+ $('#lf').onsubmit=e=>{e.preventDefault();const em=$('#em').value.trim().toLowerCase(),pw=$('#pw').value;
+  if(!em||!pw){$('#er').textContent='Enter your email and password.';return}
+  if(em!==CRED.e||pw!==CRED.p){$('#er').textContent='Incorrect email or password.';$('#pw').value='';return}
+  if(!store.set('gi-admin',{email:em,at:Date.now()})){$('#er').textContent='Your browser is blocking storage, so the login cannot be kept. Allow site data and try again.';return}
+  location.href='dashboard.html'};
+ return}
+if(!store.get('gi-admin',null)){location.replace('login.html');return}
+/* ---------- data ---------- */
+const STATUS=['Pending','Processing','Shipped','Delivered','Cancelled'];
+const SP=[['two-tone-floor-vase','Two-Tone Glazed Floor Vase','Vases',24500,8],['dried-pampas-stems','Dried Pampas Stems','Decor & Ornaments',3500,40],['ivory-floor-vase','Ivory Sculpted Floor Vase','Vases',18500,5],['chevron-vase-trio','Chevron Vase Trio','Vases',38000,3],['chevron-floor-vase','Chevron Floor Vase','Vases',16500,9],['helix-floor-lamp','Helix LED Floor Lamp','Decor & Ornaments',29500,12],['tub-armchair','Linen Tub Armchair','Decor & Ornaments',46000,4],['woven-stool','Woven Rattan Stool','Decor & Ornaments',12500,15],['aurum-round-clock','Birch Round Wall Clock','Wall Clocks',14500,22],['noir-minimal-clock','Linea Minimal Wall Clock','Wall Clocks',11500,18],['walnut-ring-clock','Walnut Ring Clock','Wall Clocks',13500,14],];
+const LP=[['new','New Arrivals'],['sale','Sale'],['featured','Featured'],['explore','Explore by Collection'],['clocks','Wall Clocks']];
+const lpBox=(sel,id)=>`<div class="lp" id="${id}">${LP.map(([k,t])=>`<label class="cc"><input type="checkbox" value="${k}" ${sel.includes(k)?'checked':''}> ${t}</label>`).join('')}</div>`;
+const getCustom=()=>store.get('gi-products',[]);
+const getOv=()=>store.get('gi-overrides',{});
+const builtin=()=>SP.map(p=>{const o=getOv()[p[0]]||{};return{id:p[0],name:o.name||p[1],cat:p[2],price:o.price||p[3],stock:o.stock!=null?o.stock:p[4],custom:false,hidden:!!o.hidden}});
+const allProducts=()=>builtin().filter(p=>!p.hidden).concat(getCustom().map(c=>({id:c.id,name:c.name,cat:c.category,price:c.price,stock:c.variants&&c.variants.length?c.variants.reduce((x,v)=>x+v.stock,0):c.stock,custom:true,from:!!(c.variants&&new Set(c.variants.map(v=>v.price)).size>1),img:(c.images||[])[0]})));
+const itemImg=i=>{const cs=getCustom();let c=i.id?cs.find(p=>p.id==i.id):null;if(!c)c=cs.find(p=>String(i.name).startsWith(p.name));
+ if(c){let idx=0;const v=(c.variants||[]).find(w=>w.sku==i.sku);if(v&&v.colourImage!=null)idx=v.colourImage;else if(v&&v.sizeImage!=null)idx=v.sizeImage;const im=(c.images||[])[idx]||(c.images||[])[0];return im?`<img class="oth" src="${im}" alt="">`:''}
+ const b=P.find(p=>(i.id&&p.id==i.id)||String(i.name).startsWith(p.n));if(!b)return'';return b.photo?`<img class="oth" src="${b.photo}" alt="">`:b.svg?`<span class="oth sv">${b.svg}</span>`:(b.im?`<img class="oth" src="${IM[b.im[0]]}" alt="">`:'')};
+function seedOrders(){const cu=[['Ayesha Raza','Karachi'],['Kamran Siddiqui','Lahore'],['Hina Malik','Islamabad'],['Usman Tariq','Karachi'],['Sana Ahmed','Faisalabad'],['Bilal Hussain','Rawalpindi'],['Maryam Khan','Karachi'],['Zain Abbas','Multan'],['Noor Fatima','Lahore'],['Hamza Ali','Peshawar'],['Areeba Shah','Karachi'],['Danish Iqbal','Hyderabad'],['Sadia Noman','Lahore'],['Faisal Mehmood','Karachi']];
+ const st=['Delivered','Delivered','Delivered','Shipped','Processing','Pending','Delivered','Cancelled','Delivered','Delivered','Pending','Shipped','Processing','Pending'];const pay=['Cash on delivery','Bank transfer','Card'];
+ return cu.map((c,i)=>{const a=SP[(i*3)%SP.length],b=SP[(i*5+2)%SP.length];const items=[{name:a[1],qty:1+(i%2),price:a[3]}];if(i%3==0)items.push({name:b[1],qty:1,price:b[3]});
+  return{id:'GI-'+(1001+i),date:daysAgo(Math.round((13-i)*0.75)),customer:c[0],phone:'+92 300 12345'+String(10+i),city:c[1],address:'House '+(10+i*3)+', Block '+String.fromCharCode(65+i%6)+', '+c[1],items,delivery:300,payment:pay[i%3],status:st[i]}}).reverse()}
+/* one-time clean start: removes the old sample orders, customers and finance entries */
+try{if(localStorage.getItem('gi-reset')!=='2'){['gi-orders','gi-orders-new','gi-ledger'].forEach(k=>localStorage.removeItem(k));localStorage.setItem('gi-reset','2')}}catch(e){}
+const getOrders=()=>{let o=store.get('gi-orders',null);if(!o){o=[];store.set('gi-orders',o)}const nw=store.get('gi-orders-new',[]);if(nw.length){o=nw.concat(o);store.set('gi-orders',o);try{localStorage.removeItem('gi-orders-new')}catch(e){}}return o};
+const saveOrders=o=>store.set('gi-orders',o);
+const total=o=>o.items.reduce((a,i)=>a+i.price*i.qty,0)+o.delivery;
+function seedLedger(){return[{id:'L1',date:daysAgo(4),type:'Expense',category:'Courier charges',note:'Weekly courier settlement',amount:9400},{id:'L2',date:daysAgo(9),type:'Expense',category:'Marketing',note:'Instagram and Facebook ads',amount:12000},{id:'L3',date:daysAgo(18),type:'Expense',category:'Stock purchase',note:'Ceramic vases from supplier',amount:48000},{id:'L4',date:daysAgo(26),type:'Expense',category:'Rent',note:'Showroom rent',amount:30000},{id:'L5',date:daysAgo(30),type:'Expense',category:'Salaries',note:'Staff salaries',amount:40000},{id:'L6',date:daysAgo(14),type:'Income',category:'Design consultation',note:'Interior consultation fee',amount:35000},{id:'L7',date:daysAgo(45),type:'Expense',category:'Stock purchase',note:'Lighting and clocks',amount:36000}]}
+const getLedger=()=>{let l=store.get('gi-ledger',null);if(!l){l=[];store.set('gi-ledger',l)}return l};
+const saveLedger=l=>store.set('gi-ledger',l);
+function fin(){const o=getOrders(),l=getLedger();const rows=o.filter(x=>x.status=='Delivered').map(x=>({id:x.id,date:x.date,type:'Income',category:'Order sale',note:x.customer+' · '+x.id,amount:total(x),auto:true})).concat(l).sort((a,b)=>b.date.localeCompare(a.date));
+ const inc=rows.filter(r=>r.type=='Income').reduce((a,r)=>a+r.amount,0),exp=rows.filter(r=>r.type=='Expense').reduce((a,r)=>a+r.amount,0);return{rows,inc,exp,net:inc-exp}}
+/* ---------- shell ---------- */
+const NAV=[['dashboard','Dashboard','dashboard.html'],['products','Products','products.html'],['discount','Discount','discount.html'],['slider','Slider','slider.html'],['settings','Settings','settings.html'],['add','Add Product','add-product.html'],['orders','Orders','orders.html'],['finance','Financial Record','finance.html'],['invoices','Invoices','invoices.html']];
+const TITLE={dashboard:'Dashboard',products:'Products',discount:'Discount',slider:'Landing Slider',settings:'Settings',add:(new URLSearchParams(location.search).get('edit')?'Edit Product':'Add Product'),orders:'Orders',finance:'Financial Record',invoices:'Invoices'};
+$('#side').innerHTML=`<img src="${IM.logo}" alt="Golden Interiors"><nav>${NAV.map(n=>`<a href="${n[2]}" class="${n[0]==PAGE?'on':''}">${n[1]}</a>`).join('')}</nav><div class="bt"><a href="index.html">View store</a><button class="lo" id="lo">Log out</button></div>`;
+$('#tb').innerHTML=`<button class="bg2" id="bg2" aria-label="Menu">☰</button><h1>${TITLE[PAGE]}</h1><span class="em">${esc(store.get('gi-admin',{}).email||'')}</span>`;
+$('#bg2').onclick=()=>$('#side').classList.toggle('o');
+$('#lo').onclick=()=>{try{localStorage.removeItem('gi-admin')}catch(e){}location.href='login.html'};
+const pg=$('#pg'),modal=$('#modal');
+const openM=h=>{modal.innerHTML=`<div class="mb" role="dialog" aria-modal="true">${h}</div>`;modal.classList.add('o')};
+const closeM=()=>{modal.classList.remove('o');modal.innerHTML=''};
+modal.onclick=e=>{if(e.target==modal)closeM()};addEventListener('keydown',e=>{if(e.key=='Escape')closeM()});
+const pill=s=>`<span class="pill s-${s}">${s}</span>`;
+/* ---------- dashboard ---------- */
+function dashboard(){const o=getOrders(),f=fin(),live=o.filter(x=>x.status!='Cancelled');
+ const pend=o.filter(x=>x.status=='Pending'||x.status=='Processing').length;
+ const days=[6,5,4,3,2,1,0].map(n=>{const d=daysAgo(n);return{d,l:new Date(d+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'}),v:live.filter(x=>x.date==d).reduce((a,x)=>a+total(x),0)}});
+ const mx=Math.max(1,...days.map(d=>d.v));
+ const bars=days.map((d,i)=>{const h=Math.round(d.v/mx*140),x=30+i*80;return`<rect x="${x}" y="${170-h}" width="44" height="${h}" fill="#A67C2E"><title>${d.l}: ${R(d.v)}</title></rect><text x="${x+22}" y="192" text-anchor="middle">${d.l}</text>${d.v?`<text x="${x+22}" y="${164-h}" text-anchor="middle">${Math.round(d.v/1000)}k</text>`:''}`}).join('');
+ const low=builtin().filter(p=>!p.hidden).map(p=>({name:p.name,stock:p.stock})).concat(getCustom().flatMap(c=>c.variants&&c.variants.length?c.variants.map(v=>({name:c.name+' ('+[v.size,v.colour].filter(Boolean).join(' · ')+')',stock:v.stock})):[{name:c.name,stock:c.stock}])).filter(p=>p.stock<=5).sort((a,b)=>a.stock-b.stock);
+ pg.innerHTML=`<div class="kp"><div class="k g"><small>Revenue (delivered)</small><b>${R(o.filter(x=>x.status=='Delivered').reduce((a,x)=>a+total(x),0))}</b><i>${o.filter(x=>x.status=='Delivered').length} delivered orders</i></div>
+ <div class="k"><small>Total orders</small><b>${o.length}</b><i>${live.length} active</i></div><div class="k"><small>Open orders</small><b>${pend}</b><i>pending or processing</i></div><div class="k g"><small>Net profit</small><b>${R(f.net)}</b><i>income ${R(f.inc)} · expenses ${R(f.exp)}</i></div></div>
+ <div class="two"><div class="cd2"><h2>Sales, last 7 days</h2><svg class="chart" viewBox="0 0 600 205" role="img" aria-label="Sales for the last 7 days"><path d="M20 170H590" stroke="#E8E5DF"/>${bars}</svg></div>
+ <div class="cd2"><h2>Low stock</h2>${low.length?`<ul class="lowl">${low.map(p=>`<li><span>${esc(p.name)}</span><b style="color:var(--bad)">${p.stock} left</b></li>`).join('')}</ul>`:'<p class="mut">All products are well stocked.</p>'}</div></div>
+ <div class="cd2"><h2>Recent orders <a class="btn2 o sm" href="orders.html">View all</a></h2><div class="tw"><table class="t"><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="r">Total</th><th>Status</th></tr></thead><tbody>${o.slice(0,6).map(x=>`<tr><td><b>${x.id}</b></td><td>${fdate(x.date)}</td><td>${esc(x.customer)}</td><td class="r">${R(total(x))}</td><td>${pill(x.status)}</td></tr>`).join('')}</tbody></table></div></div>
+ <div class="cd2"><h2>Quick actions</h2><div class="chips"><a class="btn2" href="add-product.html">Add product</a><a class="btn2 o" href="orders.html">Manage orders</a><a class="btn2 o" href="finance.html">Financial record</a><a class="btn2 o" href="invoices.html">Invoices</a></div></div>`}
+/* ---------- orders ---------- */
+let oFilter='All',oQ='';
+function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>All orders <button class="btn2" id="no">+ New order</button></h2><div class="tool"><div class="chips" id="of">${['All'].concat(STATUS).map(s=>`<button aria-pressed="${s==oFilter}" data-s="${s}">${s}</button>`).join('')}</div><input type="search" id="oq" placeholder="Search order, customer or city" value="${esc(oQ)}" style="max-width:300px"></div><div class="tw"><table class="t"><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>City</th><th>Items</th><th class="r">Total</th><th>Payment</th><th>Status</th><th></th></tr></thead><tbody id="ob"></tbody></table></div></div>`;
+ const draw=()=>{const o=getOrders().filter(x=>(oFilter=='All'||x.status==oFilter)&&(!oQ||(x.id+x.customer+x.city).toLowerCase().includes(oQ.toLowerCase())));
+  $('#ob').innerHTML=o.length?o.map(x=>`<tr><td><b>${x.id}</b></td><td>${fdate(x.date)}</td><td>${esc(x.customer)}<br><small class="mut">${esc(x.phone)}</small></td><td>${esc(x.city)}</td><td>${x.items.reduce((a,i)=>a+i.qty,0)}</td><td class="r">${R(total(x))}</td><td>${esc(x.payment)}</td><td><select class="st" data-id="${x.id}" aria-label="Status for ${x.id}">${STATUS.map(s=>`<option ${s==x.status?'selected':''}>${s}</option>`).join('')}</select></td><td style="white-space:nowrap"><button class="btn2 o sm" data-v="${x.id}">View</button> <a class="btn2 sm" href="invoices.html?order=${x.id}">Invoice</a></td></tr>`).join(''):'<tr><td colspan="9" class="mut">No orders match.</td></tr>'};
+ draw();
+ $('#of').onclick=e=>{const b=e.target.closest('button');if(!b)return;oFilter=b.dataset.s;$$('#of button').forEach(x=>x.setAttribute('aria-pressed',x==b));draw()};
+ $('#oq').oninput=e=>{oQ=e.target.value;draw()};
+ $('#ob').onchange=e=>{const s=e.target.closest('select');if(!s)return;const o=getOrders();o.find(x=>x.id==s.dataset.id).status=s.value;saveOrders(o);draw()};
+ $('#ob').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;const x=getOrders().find(o=>o.id==b.dataset.v);
+  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr></tbody></table><p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices.html?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM};
+ $('#no').onclick=()=>{const ps=allProducts();
+  openM(`<h2>New order</h2><form id="nf" novalidate class="fg2"><label class="f">Customer name<input id="nc"><span class="e"></span></label><label class="f">Phone<input id="np" inputmode="tel"><span class="e"></span></label><label class="f">City<input id="ni"></label><label class="f">Payment<select id="ny"><option>Cash on delivery</option><option>Bank transfer</option><option>Card</option></select></label><label class="f w">Address<input id="na"></label><label class="f">Product<select id="nq">${ps.map(p=>`<option value="${p.id}">${esc(p.name)} (${R(p.price)})</option>`).join('')}</select></label><label class="f">Quantity<input id="nn" type="number" min="1" value="1"></label><div class="w" style="display:flex;gap:10px"><button class="btn2" type="submit">Create order</button><button class="btn2 o" type="button" id="cm">Cancel</button></div></form>`);
+  $('#cm').onclick=closeM;
+  $('#nf').onsubmit=e=>{e.preventDefault();let ok=true;const chk=(id,fn,m)=>{const el=$('#'+id),g=fn(el.value);el.parentNode.querySelector('.e').textContent=g?'':m;if(!g)ok=false};
+   chk('nc',v=>v.trim().length>1,'Enter the customer name.');chk('np',v=>/^[+\d][\d\s-]{8,}$/.test(v.trim()),'Enter a valid phone number.');if(!ok)return;
+   const p=ps.find(x=>x.id==$('#nq').value),all=getOrders();const n=Math.max(...all.map(x=>parseInt(x.id.slice(3))))+1;
+   all.unshift({id:'GI-'+n,date:daysAgo(0),customer:$('#nc').value.trim(),phone:$('#np').value.trim(),city:$('#ni').value.trim()||'—',address:$('#na').value.trim()||'—',items:[{name:p.name,qty:Math.max(1,parseInt($('#nn').value)||1),price:p.price}],delivery:300,payment:$('#ny').value,status:'Pending'});saveOrders(all);closeM();draw()}}}
+/* ---------- finance ---------- */
+let fT='All';
+function financePage(){const F=fin();
+ pg.innerHTML=`<div class="kp"><div class="k g"><small>Total income</small><b>${R(F.inc)}</b><i>delivered orders + other income</i></div><div class="k"><small>Total expenses</small><b>${R(F.exp)}</b></div><div class="k g"><small>Net profit</small><b style="color:${F.net<0?'var(--bad)':'var(--ok)'}">${R(F.net)}</b></div><div class="k"><small>Entries</small><b>${F.rows.length}</b></div></div>
+ <div class="cd2"><h2>Add an entry</h2><form id="ff" class="fg2" novalidate style="grid-template-columns:repeat(5,1fr)"><label class="f">Date<input type="date" id="fd" value="${daysAgo(0)}"></label><label class="f">Type<select id="ft"><option>Expense</option><option>Income</option></select></label><label class="f">Category<input id="fc" list="fcl" placeholder="e.g. Rent"><datalist id="fcl"><option>Stock purchase</option><option>Rent</option><option>Salaries</option><option>Marketing</option><option>Courier charges</option><option>Design consultation</option></datalist><span class="e"></span></label><label class="f">Amount (Rs.)<input id="fa" type="number" min="1"><span class="e"></span></label><label class="f">Note<input id="fn"></label><div class="w"><button class="btn2" type="submit">Add entry</button></div></form></div>
+ <div class="cd2"><h2>Ledger <span><button class="btn2 o sm" id="csv">Export CSV</button></span></h2><div class="tool"><div class="chips" id="fl">${['All','Income','Expense'].map(s=>`<button aria-pressed="${s==fT}" data-s="${s}">${s}</button>`).join('')}</div></div><div class="tw"><table class="t"><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Note</th><th class="r">Amount</th><th></th></tr></thead><tbody id="fb"></tbody></table></div></div>`;
+ const draw=()=>{const rows=F.rows.filter(r=>fT=='All'||r.type==fT);$('#fb').innerHTML=rows.map(r=>`<tr><td>${fdate(r.date)}</td><td><span class="pill ${r.type=='Income'?'s-Paid':'s-Cancelled'}">${r.type}</span></td><td>${esc(r.category)}</td><td>${esc(r.note)}</td><td class="r" style="color:${r.type=='Income'?'var(--ok)':'var(--bad)'}">${r.type=='Income'?'+':'−'}${R(r.amount)}</td><td>${r.auto?'<small class="mut">from order</small>':`<button class="btn2 d sm" data-d="${r.id}">Delete</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No entries.</td></tr>'};
+ draw();
+ $('#fl').onclick=e=>{const b=e.target.closest('button');if(!b)return;fT=b.dataset.s;$$('#fl button').forEach(x=>x.setAttribute('aria-pressed',x==b));draw()};
+ $('#fb').onclick=e=>{const b=e.target.closest('[data-d]');if(!b||!confirm('Delete this entry?'))return;saveLedger(getLedger().filter(l=>l.id!=b.dataset.d));financePage()};
+ $('#ff').onsubmit=e=>{e.preventDefault();let ok=true;const chk=(id,fn,m)=>{const el=$('#'+id),g=fn(el.value);el.parentNode.querySelector('.e').textContent=g?'':m;if(!g)ok=false};chk('fc',v=>v.trim().length>1,'Add a category.');chk('fa',v=>+v>0,'Enter an amount.');if(!ok)return;
+  const l=getLedger();l.push({id:'L'+Date.now(),date:$('#fd').value||daysAgo(0),type:$('#ft').value,category:$('#fc').value.trim(),note:$('#fn').value.trim(),amount:+$('#fa').value});saveLedger(l);financePage()};
+ $('#csv').onclick=()=>{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const t=['Date,Type,Category,Note,Amount'].concat(F.rows.map(r=>[r.date,r.type,r.category,r.note,r.amount].map(q).join(','))).join('\n');
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='golden-interiors-ledger.csv';a.click()}catch(e){alert('Download is not available in this view.')}}}
+/* ---------- invoices ---------- */
+function invoicesPage(){const o=getOrders().filter(x=>x.status!='Cancelled');let sel=new URLSearchParams(location.search).get('order')||(o[0]&&o[0].id),q='';
+ pg.innerHTML=`<div class="iv"><div class="cd2" style="margin-top:0;padding:0"><div style="padding:14px"><input type="search" id="iq" placeholder="Search invoices"></div><div class="il" id="il"></div></div><div><div class="chips" style="margin-bottom:12px"><button class="btn2" id="pr">Print or save as PDF</button></div><div id="inv"></div></div></div>`;
+ const list=()=>{const l=o.filter(x=>!q||(x.id+x.customer).toLowerCase().includes(q.toLowerCase()));$('#il').innerHTML=l.map(x=>`<button aria-pressed="${x.id==sel}" data-id="${x.id}"><b>INV-${x.id.slice(3)}</b> · ${R(total(x))}<small>${esc(x.customer)} · ${fdate(x.date)}</small></button>`).join('')||'<p class="mut" style="padding:14px">No invoices.</p>'};
+ const show=()=>{const x=o.find(y=>y.id==sel);if(!x){$('#inv').innerHTML='<div class="ib2 mut">Select an invoice.</div>';return}
+  const sub=x.items.reduce((a,i)=>a+i.price*i.qty,0),paid=x.status=='Delivered';
+  $('#inv').innerHTML=`<div class="ih"><img src="${IM.logo}" alt="Golden Interiors"><div style="text-align:right"><h2>Invoice</h2><div>INV-${x.id.slice(3)}</div></div></div><div class="ib2"><div class="g3"><div><h4>Billed to</h4><b>${esc(x.customer)}</b><br>${esc(x.address)}<br>${esc(x.phone)}</div><div><h4>Details</h4>Order ${x.id}<br>Date ${fdate(x.date)}<br>${esc(x.payment)}</div><div><h4>Status</h4>${pill(paid?'Paid':'Due')}<br><small class="mut">Order ${x.status.toLowerCase()}</small></div></div>
+  <table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody>${x.items.map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${i.qty}</td><td class="r">${R(i.price)}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}</tbody></table>
+  <div class="tot"><div><span>Subtotal</span><span>${R(sub)}</span></div><div><span>Delivery</span><span>${R(x.delivery)}</span></div><div class="gt"><span>Total</span><span>${R(total(x))}</span></div></div></div><div class="ft">Golden Interiors · hello@goldeninteriors.pk · +92 300 000 0000<br>Thank you for your order. Orders are processed and delivered within 3 to 5 days.</div>`};
+ list();show();
+ $('#il').onclick=e=>{const b=e.target.closest('button');if(!b)return;sel=b.dataset.id;list();show();try{history.replaceState(null,'','?order='+sel)}catch(x){}};
+ $('#iq').oninput=e=>{q=e.target.value;list()};
+ $('#pr').onclick=()=>{try{window.print()}catch(e){alert('Printing is not available in this view. Open the page in its own tab and try again.')}}}
+/* ---------- add product ---------- */
+function addPage(banner){
+ let imgs=[],cid=0;const SIZES=['One size','Small','Medium','Large'],CATSL=['Bathsets','Alarm & Table Clocks','Decor & Ornaments','Candle Stands','Wall Clocks','Trays','Vases','Figurines'];
+ const S={colours:[],rows:{},sku:{}};SIZES.forEach(s=>S.rows[s]={on:s=='One size',price:'',compare:'',photo:'',qty:'',cells:{}});
+ pg.innerHTML=`<div class="ok2" id="okm" role="status"></div><form id="pf" novalidate>
+ <div class="cd2" style="margin-top:0"><h2>1. Product details</h2><div class="fg2">
+ <label class="f w">Product name<input id="pn"><span class="e"></span></label>
+ <label class="f">Category<select id="pc">${CATSL.map(c=>`<option>${c}</option>`).join('')}</select></label>
+ <label class="f">Tag<select id="pt"><option value="">None</option><option>New</option><option>Sale</option></select></label>
+ <label class="f">SKU prefix<input id="sk" placeholder="Auto from the name"></label><div></div>
+ <label class="f w">Description<textarea id="pd" rows="3"></textarea><span class="e"></span></label></div></div>
+ <div class="cd2"><h2>2. Photos</h2><p class="mut">Up to 4 photos. The first one is the main image. You can link a photo to a size or colour below.</p><div class="drop" id="dz" style="margin-top:10px">Click to choose photos<input type="file" id="fi" accept="image/*" multiple hidden></div><div class="imgs" id="ims"></div></div>
+ <div class="cd2"><h2>3. Colours</h2><p class="mut">Add every colour you sell. You choose which colours each size has in the next step. Leave empty if the product has no colour choice.</p><div id="cl"></div><button type="button" class="btn2 o sm" id="ac" style="margin-top:12px">+ Add colour</button></div>
+ <div class="cd2"><h2>4. Sizes, prices and stock</h2><p class="mut">Tick each size you sell. For each size set its price and compare price (the higher, crossed-out price), then tick the colours that size comes in and enter the quantity for each. Use “One size” if the product has no sizes.</p><div class="tw" style="margin-top:12px"><div id="mx"></div></div></div>
+ <div class="cd2"><h2>5. Variants and SKUs <span class="mut" id="vs" style="font:400 14px 'Poppins',sans-serif"></span></h2><div class="tw"><table class="t"><thead><tr><th>SKU (editable)</th><th>Size</th><th>Colour</th><th class="r">Price</th><th class="r">Compare</th><th class="r">Qty</th></tr></thead><tbody id="vp"></tbody></table></div></div>
+ <div class="cd2"><h2>6. Dimensions, material and care</h2><p class="mut">Type the height and width for each size, for example “30 in”. A size you leave empty will not show on the product page.</p>
+ <div class="tw" style="margin:10px 0 18px"><table class="t sdm"><thead><tr><th>Size</th><th>Height</th><th>Width</th></tr></thead><tbody id="sd">${['Small','Medium','Large'].map(z=>`<tr data-z="${z}"><td><b>${z}</b></td><td><input data-d="height" placeholder="e.g. 24 in" aria-label="${z} height"></td><td><input data-d="width" placeholder="e.g. 16 in" aria-label="${z} width"></td></tr>`).join('')}</tbody></table></div>
+ <p class="mut" style="margin-bottom:6px">Other measurements (optional)</p><div class="rows" id="dr"></div><button type="button" class="btn2 o sm" id="ad" style="margin:10px 0 16px">+ Add row</button><div class="fg2"><label class="f">Material<textarea id="pm" rows="2"></textarea></label><label class="f">Extra care notes (the standard care guide for the category is added automatically)<textarea id="pr" rows="2"></textarea></label></div></div>
+ <div class="cd2"><h2>7. Show on the landing page</h2><p class="mut">Tick the home page sections where this product should appear.</p>${lpBox([],'lp')}</div>
+ <div class="er2" id="me" role="alert"></div><div style="margin-top:18px"><button class="btn2" type="submit">Save product</button></div></form>`;
+ if(banner){const m=$('#okm');m.style.display='block';m.innerHTML=banner}
+ const dimRow=(a='',b='')=>`<div class="row"><input placeholder="Label, e.g. Height" value="${esc(a)}"><input placeholder="Value, e.g. 30 in" value="${esc(b)}"><button type="button" class="x" aria-label="Remove">×</button></div>`;
+ $('#dr').innerHTML=dimRow();$('#ad').onclick=()=>$('#dr').insertAdjacentHTML('beforeend',dimRow());
+ pg.addEventListener('click',e=>{const x=e.target.closest('.x');if(x&&x.parentNode.classList.contains('row'))x.parentNode.remove()});
+ const photoOpts=v=>`<option value="">Auto</option>`+imgs.map((_,i)=>`<option value="${i}" ${v===String(i)?'selected':''}>Photo ${i+1}</option>`).join('');
+ /* photos */
+ const showImgs=()=>{$('#ims').innerHTML=imgs.map((s,i)=>`<div class="im"><img src="${s}" alt="Photo ${i+1}">${i==0?'<b>Main</b>':'<b>'+(i+1)+'</b>'}<button type="button" data-i="${i}" aria-label="Remove photo">×</button></div>`).join('');drawCol();drawMx()};
+ $('#ims').onclick=e=>{const b=e.target.closest('button');if(b){imgs.splice(+b.dataset.i,1);S.colours.forEach(c=>{if(+c.photo>=imgs.length)c.photo=''});SIZES.forEach(s=>{if(+S.rows[s].photo>=imgs.length)S.rows[s].photo=''});showImgs()}};
+ $('#dz').onclick=()=>$('#fi').click();
+ const toJpg=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=900,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.74))};im.onerror=()=>res(null);im.src=r.result};r.onerror=()=>res(null);r.readAsDataURL(f)});
+ $('#fi').onchange=async e=>{for(const f of [...e.target.files]){if(imgs.length>=4)break;const d=await toJpg(f);if(d)imgs.push(d)}e.target.value='';showImgs()};
+ /* colours */
+ function drawCol(){$('#cl').innerHTML=S.colours.map(c=>`<div class="crow" data-id="${c.id}"><input data-k="name" placeholder="Colour name, e.g. Sage" value="${esc(c.name)}"><input data-k="hex" type="color" value="${c.hex}"><select data-k="photo" aria-label="Photo for ${esc(c.name)}">${photoOpts(c.photo)}</select><button type="button" class="x" data-rc="${c.id}" aria-label="Remove colour">×</button></div>`).join('')||'<p class="mut">No colours added.</p>'}
+ $('#ac').onclick=()=>{S.colours.push({id:++cid,name:'',hex:['#9FB3A4','#E8E2D4','#3A3F3C','#A67C2E','#B9775A','#5E9A97'][S.colours.length%6],photo:''});drawCol();drawMx();prev()};
+ $('#cl').oninput=e=>{const r=e.target.closest('.crow');if(!r)return;const c=S.colours.find(x=>x.id==r.dataset.id);c[e.target.dataset.k]=e.target.value;if(e.target.dataset.k!='hex'||true){drawMx();prev()}};
+ $('#cl').onclick=e=>{const b=e.target.closest('[data-rc]');if(!b)return;const id=+b.dataset.rc;S.colours=S.colours.filter(c=>c.id!=id);SIZES.forEach(s=>delete S.rows[s].cells[id]);drawCol();drawMx();prev()};
+ /* size x colour grid */
+ const rowTotal=s=>{const r=S.rows[s];return S.colours.length?Object.values(r.cells).filter(c=>c.on).reduce((a,c)=>a+(parseInt(c.qty)||0),0):(parseInt(r.qty)||0)};
+ function drawMx(){const C=S.colours;
+  $('#mx').innerHTML=`<table class="t mx"><thead><tr><th>Size</th><th>Price (Rs.)</th><th>Compare price (Rs.)</th>${C.length?C.map(c=>`<th><span class="dot" style="background:${c.hex}"></span>${esc(c.name||'Colour')}<br><small class="mut" style="font-weight:400;text-transform:none;letter-spacing:0">tick + qty</small></th>`).join(''):'<th>Qty</th>'}<th>Photo</th><th class="r">Total qty</th></tr></thead><tbody>${SIZES.map(s=>{const r=S.rows[s],d=r.on?'':'disabled';
+   return`<tr class="${r.on?'':'off'}" data-s="${s}"><td style="white-space:nowrap"><label class="cc"><input type="checkbox" data-sz ${r.on?'checked':''}> <b>${s}</b></label>${C.length&&r.on?`<button type="button" class="btn2 o sm" data-all style="margin-top:6px">All colours</button>`:''}</td>
+   <td><input type="number" min="1" data-f="price" value="${esc(r.price)}" ${d}></td><td><input type="number" min="1" data-f="compare" value="${esc(r.compare)}" ${d}></td>
+   ${C.length?C.map(c=>{const cell=r.cells[c.id]||{on:false,qty:''};return`<td><label class="cc"><input type="checkbox" data-c="${c.id}" ${cell.on?'checked':''} ${d}><input type="number" min="0" placeholder="Qty" data-q="${c.id}" value="${esc(cell.qty)}" ${r.on&&cell.on?'':'disabled'}></label></td>`}).join(''):`<td><input type="number" min="0" data-f="qty" placeholder="Qty" value="${esc(r.qty)}" ${d}></td>`}
+   <td><select data-ph ${d}>${photoOpts(r.photo)}</select></td><td class="r"><b id="tt-${SIZES.indexOf(s)}">${r.on?rowTotal(s):'—'}</b></td></tr>`}).join('')}</tbody></table>`}
+ const mx=$('#mx');
+ mx.addEventListener('change',e=>{const tr=e.target.closest('tr');if(!tr)return;const r=S.rows[tr.dataset.s];
+  if(e.target.matches('[data-sz]')){r.on=e.target.checked;drawMx();prev()}
+  else if(e.target.matches('[data-c]')){const id=e.target.dataset.c;r.cells[id]=r.cells[id]||{on:false,qty:''};r.cells[id].on=e.target.checked;drawMx();prev()}
+  else if(e.target.matches('[data-ph]')){r.photo=e.target.value;prev()}});
+ mx.addEventListener('input',e=>{const tr=e.target.closest('tr');if(!tr)return;const s=tr.dataset.s,r=S.rows[s];
+  if(e.target.dataset.f){r[e.target.dataset.f]=e.target.value}else if(e.target.dataset.q){const id=e.target.dataset.q;r.cells[id]=r.cells[id]||{on:true,qty:''};r.cells[id].qty=e.target.value}else return;
+  const t=$('#tt-'+SIZES.indexOf(s));if(t)t.textContent=rowTotal(s);prev()});
+ mx.addEventListener('click',e=>{const b=e.target.closest('[data-all]');if(!b)return;const r=S.rows[b.closest('tr').dataset.s];S.colours.forEach(c=>{r.cells[c.id]=r.cells[c.id]||{on:false,qty:''};r.cells[c.id].on=true});drawMx();prev()});
+ /* variants and SKUs */
+ const prefix=()=>{const v=$('#sk').value.trim().toUpperCase().replace(/[^A-Z0-9-]+/g,'');if(v)return v;const w=$('#pn').value.trim().toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);return 'GI-'+(w.map(x=>x[0]).join('').slice(0,4)||'ITEM')};
+ const autoSku=(p,v)=>p+(v.size?'-'+v.size.replace(/one size/i,'OS')[0].toUpperCase():'')+(v.colour?'-'+v.colour.replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase():'');
+ function variants(){const out=[],p=prefix();
+  SIZES.forEach(s=>{const r=S.rows[s];if(!r.on)return;const size=s=='One size'?'':s,sp=r.photo===''?null:+r.photo;
+   const base={size,price:+r.price||0,compareAt:+r.compare||null,sizeImage:sp};
+   if(!S.colours.length)out.push(Object.assign({},base,{colour:'',swatch:'',colourImage:null,stock:parseInt(r.qty)||0,key:s+'|',missing:r.qty===''}));
+   else S.colours.forEach(c=>{const cell=r.cells[c.id];if(cell&&cell.on)out.push(Object.assign({},base,{colour:c.name||'Colour',swatch:c.hex,colourImage:c.photo===''?null:+c.photo,stock:parseInt(cell.qty)||0,key:s+'|'+c.id,missing:cell.qty===''}))})});
+  out.forEach(v=>{v.sku=S.sku[v.key]||autoSku(p,v)});return out}
+ function prev(){const V=variants();$('#vs').textContent=V.length?`${V.length} variants · ${V.reduce((a,v)=>a+v.stock,0)} units in total`:'';
+  $('#vp').innerHTML=V.length?V.map(v=>`<tr><td><input data-k="${esc(v.key)}" value="${esc(v.sku)}" style="min-width:150px"></td><td>${v.size||'One size'}</td><td>${v.colour?`<span class="dot" style="background:${v.swatch}"></span>${esc(v.colour)}`:'—'}</td><td class="r">${v.price?R(v.price):'—'}</td><td class="r">${v.compareAt?R(v.compareAt):'—'}</td><td class="r">${v.stock}</td></tr>`).join(''):'<tr><td colspan="6" class="mut">Tick a size above to create variants.</td></tr>'}
+ $('#vp').oninput=e=>{if(e.target.dataset.k)S.sku[e.target.dataset.k]=e.target.value.trim().toUpperCase()};
+ $('#pt').onchange=()=>{const k={New:'new',Sale:'sale'}[$('#pt').value];if(k)$('#lp input[value='+k+']').checked=true};
+ $('#pn').oninput=prev;$('#sk').oninput=prev;
+ /* lists */
+ const EID=new URLSearchParams(location.search).get('edit'),EP=EID&&getCustom().find(c=>c.id==EID);
+ if(EP){$('#pn').value=EP.name;$('#pc').value=EP.category;$('#pt').value=EP.tag||'';$('#pd').value=EP.description||'';$('#pm').value=EP.material||'';$('#pr').value=EP.care||'';
+  imgs=(EP.images||[]).slice();$('#dr').innerHTML=(EP.dimensions||[]).map(d=>dimRow(d[0],d[1])).join('')||dimRow();
+  Object.entries(EP.sizeDims||{}).forEach(([z,v])=>{const r=$('#sd tr[data-z="'+z+'"]');if(r){r.querySelector('[data-d=height]').value=v.height||'';r.querySelector('[data-d=width]').value=v.width||''}});
+  const vs=EP.variants&&EP.variants.length?EP.variants:[{sku:'',size:'',colour:'',price:EP.price,compareAt:EP.compareAt,stock:EP.stock||0}];
+  SIZES.forEach(z=>S.rows[z].on=false);
+  vs.forEach(v=>{let c=null;if(v.colour){c=S.colours.find(k=>k.name==v.colour);if(!c){c={id:++cid,name:v.colour,hex:v.swatch||'#A67C2E',photo:v.colourImage==null?'':String(v.colourImage)};S.colours.push(c)}}
+   const z=v.size||'One size',r=S.rows[z];r.on=true;r.price=String(v.price||'');r.compare=v.compareAt?String(v.compareAt):'';r.photo=v.sizeImage==null?'':String(v.sizeImage);
+   if(c){r.cells[c.id]={on:true,qty:String(v.stock)};S.sku[z+'|'+c.id]=v.sku}else{r.qty=String(v.stock);S.sku[z+'|']=v.sku}});
+  $('#sk').value='';$$('#lp input').forEach(i=>i.checked=(EP.showOn||(EP.tag=='New'?['new']:[])).includes(i.value));$('#pf button[type=submit]').textContent='Save changes';
+  const h=document.createElement('p');h.className='mut';h.innerHTML='Editing “'+esc(EP.name)+'”. <a href="products.html">Cancel</a>';pg.insertBefore(h,pg.firstChild);showImgs()}
+ drawCol();drawMx();prev();
+ /* save */
+ $('#pf').onsubmit=e=>{e.preventDefault();const errs=[];const V=variants();
+  const chk=(id,fn,m)=>{const el=$('#'+id),g=fn(el.value);el.parentNode.querySelector('.e').textContent=g?'':m;if(!g)errs.push(m)};
+  chk('pn',v=>v.trim().length>2,'Enter the product name.');chk('pd',v=>v.trim().length>9,'Add a short description.');
+  if(!imgs.length)errs.push('Add at least one photo.');
+  if(S.colours.some(c=>!c.name.trim()))errs.push('Give every colour a name.');
+  if(!V.length)errs.push('Tick at least one size (or “One size”).');
+  SIZES.forEach(s=>{const r=S.rows[s];if(!r.on)return;if(!(+r.price>0))errs.push(s+': enter a price.');else if(r.compare!==''&&!(+r.compare>+r.price))errs.push(s+': the compare price must be higher than the price.');
+   if(S.colours.length&&!S.colours.some(c=>r.cells[c.id]&&r.cells[c.id].on))errs.push(s+': tick at least one colour.')});
+  if(V.some(v=>v.missing))errs.push('Enter a quantity for every ticked colour or size (0 if none in stock).');
+  const skus=V.map(v=>v.sku);if(new Set(skus).size!=skus.length)errs.push('Two variants share the same SKU. Make each SKU different.');
+  $('#me').innerHTML=errs.length?'<b>Please fix:</b><ul>'+[...new Set(errs)].map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>':'';
+  if(errs.length){$('#me').scrollIntoView({block:'center'});return}
+  const name=$('#pn').value.trim(),id=EP?EP.id:name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now().toString(36);
+  const low=V.reduce((a,v)=>v.price<a.price?v:a,V[0]);
+  const prod={id,name,category:$('#pc').value,price:low.price,compareAt:low.compareAt,tag:$('#pt').value,stock:V.reduce((a,v)=>a+v.stock,0),description:$('#pd').value.trim(),images:imgs.slice(),variants:V.map(v=>({sku:v.sku,size:v.size,colour:v.colour,swatch:v.swatch,price:v.price,compareAt:v.compareAt,stock:v.stock,sizeImage:v.sizeImage,colourImage:v.colourImage})),showOn:$$('#lp input:checked').map(i=>i.value),sizeDims:(()=>{const o={};$$('#sd tr').forEach(r=>{const h=r.querySelector('[data-d=height]').value.trim(),w=r.querySelector('[data-d=width]').value.trim();if(h||w)o[r.dataset.z]={height:h,width:w}});return o})(),dimensions:$$('#dr .row').map(r=>[r.children[0].value.trim(),r.children[1].value.trim()]).filter(d=>d[0]&&d[1]),material:$('#pm').value.trim(),care:$('#pr').value.trim()};
+  if(!store.set('gi-products',EP?getCustom().map(c=>c.id==EP.id?prod:c):getCustom().concat(prod))){alert('The browser storage is full. Remove a photo or an older product and try again.');return}
+  if(EP){location.href='products.html?saved='+encodeURIComponent(name);return}
+  addPage(`Saved “${esc(name)}” with ${V.length} variants. <a href="product.html?id=${id}">View it on the store</a>`);scrollTo(0,0)}}
+function productsPage(){
+ let q='',cat='';const CAT=['Bathsets','Alarm & Table Clocks','Decor & Ornaments','Candle Stands','Wall Clocks','Trays','Vases','Figurines'];
+ const thumb=p=>{if(p.custom){return p.img?`<img class="th2" src="${p.img}" alt="">`:''}const cp=P.find(x=>x.id==p.id);if(!cp)return'';return cp.photo?`<img class="th2" src="${cp.photo}" alt="">`:cp.svg?`<span class="th2 sv">${cp.svg}</span>`:(cp.im?`<img class="th2" src="${IM[cp.im[0]]}" alt="">`:'')};
+ const saved=new URLSearchParams(location.search).get('saved');
+ pg.innerHTML=`${saved?`<div class="ok2" style="display:block" role="status">Saved changes to “${esc(saved)}”.</div>`:''}<div class="cd2" style="margin-top:0"><h2>All products <a class="btn2" href="add-product.html">+ Add Product</a></h2>
+ <div class="tool"><input id="fq" type="search" placeholder="Search products" aria-label="Search products"><select id="fc" aria-label="Filter by category"><option value="">All categories</option>${CAT.map(c=>`<option>${c}</option>`).join('')}</select><span class="mut" id="cnt"></span></div>
+ <div class="tw"><table class="t"><thead><tr><th></th><th>Product</th><th>Category</th><th class="r">Price</th><th class="r">Stock</th><th>Actions</th></tr></thead><tbody id="pl"></tbody></table></div></div>
+ <div class="cd2" id="hid" style="display:none"><h2>Deleted sample products</h2><p class="mut">These are hidden from the store. Restore to show them again.</p><div class="tw"><table class="t"><tbody id="hl"></tbody></table></div></div>`;
+ function draw(){const l=allProducts().concat(getCustom().length?[]:[]).filter(p=>(!cat||p.cat==cat)&&(!q||(p.name+' '+p.cat).toLowerCase().includes(q)));
+  $('#cnt').textContent=l.length+' product'+(l.length==1?'':'s');
+  $('#pl').innerHTML=l.map(p=>`<tr><td>${thumb(p)}</td><td><b>${esc(p.name)}</b>${p.custom?' <span class="pill s-Processing">added</span>':''}</td><td>${esc(p.cat)}</td><td class="r">${p.from?'From ':''}${R(p.price)}</td><td class="r" style="${p.stock<=5?'color:var(--bad);font-weight:600':''}">${p.stock}</td>
+  <td class="acts"><a class="btn2 o sm" href="product.html?id=${p.id}" target="_blank" rel="noopener">Review</a> <button class="btn2 o sm" data-e="${p.id}">Edit</button> <button class="btn2 d sm" data-x="${p.id}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6" class="mut">No products match.</td></tr>';
+  const h=builtin().filter(p=>p.hidden);$('#hid').style.display=h.length?'block':'none';
+  $('#hl').innerHTML=h.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.cat)}</td><td class="r"><button class="btn2 o sm" data-r="${p.id}">Restore</button></td></tr>`).join('')}
+ $('#fq').oninput=e=>{q=e.target.value.trim().toLowerCase();draw()};$('#fc').onchange=e=>{cat=e.target.value;draw()};
+ const editBuilt=id=>{const cp=P.find(x=>x.id==id),o=getOv()[id]||{},b=builtin().find(x=>x.id==id);
+  const g=(k,d)=>o[k]!=null?o[k]:d;
+  openM(`<h2>Edit product</h2><form id="ef"><div class="fg2"><label class="f w">Name<input id="en" value="${esc(g('name',cp.n))}"></label>
+  <label class="f">Price (Rs.)<input id="ep" type="number" min="1" value="${g('price',cp.p)}"></label><label class="f">Compare price (Rs.)<input id="eo" type="number" min="0" value="${g('compareAt',cp.o)||''}"></label>
+  <label class="f">Stock<input id="es" type="number" min="0" value="${b.stock}"></label><label class="f">Tag<select id="et">${['','New','Sale'].map(t=>`<option value="${t}" ${g('tag',cp.tag||'')==t?'selected':''}>${t||'None'}</option>`).join('')}</select></label>
+  <div class="f w"><span>Show on the landing page</span>${lpBox(g('showOn',(NA.includes(cp)?['new']:[]).concat(CK.includes(cp)?['clocks']:[],cp.o?['sale']:[])),'elp')}</div><label class="f w">Description<textarea id="ed" rows="3">${esc(g('description',cp.d||''))}</textarea></label>
+  <label class="f w">Material<textarea id="em2" rows="2">${esc(g('material',cp.mat||''))}</textarea></label>
+  <label class="f w">Dimensions (one per line, “Label: value”)<textarea id="edm" rows="4">${esc((g('dimensions',cp.dim||[])).map(d=>d[0]+': '+d[1]).join('\n'))}</textarea></label></div>
+  <div class="er2" id="ee" role="alert"></div><div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save changes</button><button class="btn2 o" type="button" id="ec">Cancel</button></div></form>`);
+  $('#ec').onclick=closeM;
+  $('#ef').onsubmit=e=>{e.preventDefault();const pr=+$('#ep').value,cm=+$('#eo').value||null;
+   if(!$('#en').value.trim()||!(pr>0)){$('#ee').textContent='Enter a name and a price.';return}
+   if(cm&&cm<=pr){$('#ee').textContent='The compare price must be higher than the price.';return}
+   const ov=getOv();ov[id]=Object.assign({},ov[id],{name:$('#en').value.trim(),price:pr,compareAt:cm,stock:Math.max(0,parseInt($('#es').value)||0),tag:$('#et').value,description:$('#ed').value.trim(),material:$('#em2').value.trim(),showOn:$$('#elp input:checked').map(i=>i.value),dimensions:$('#edm').value.split('\n').map(l=>{const i=l.indexOf(':');return i>0?[l.slice(0,i).trim(),l.slice(i+1).trim()]:null}).filter(d=>d&&d[0]&&d[1])});
+   store.set('gi-overrides',ov);closeM();draw()}};
+ pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.e){const c=getCustom().find(x=>x.id==b.dataset.e);if(c)location.href='add-product.html?edit='+encodeURIComponent(c.id);else editBuilt(b.dataset.e)}
+  else if(b.dataset.x){const id=b.dataset.x,c=getCustom().find(x=>x.id==id);
+   if(c){if(confirm('Delete “'+c.name+'” permanently? This removes it from the store.')){store.set('gi-products',getCustom().filter(x=>x.id!=id));draw()}}
+   else if(confirm('Delete this sample product? It will be hidden from the store and you can restore it later.')){const ov=getOv();ov[id]=Object.assign({},ov[id],{hidden:true});store.set('gi-overrides',ov);draw()}}
+  else if(b.dataset.r){const ov=getOv();if(ov[b.dataset.r])delete ov[b.dataset.r].hidden;store.set('gi-overrides',ov);draw()}});
+ draw()}
+function discountPage(){
+ const CAT=['Bathsets','Alarm & Table Clocks','Decor & Ornaments','Candle Stands','Wall Clocks','Trays','Vases','Figurines'];
+ const get=()=>store.get('gi-discounts',[]),put=l=>store.set('gi-discounts',l);
+ const today=iso(new Date());
+ const state=r=>!r.active?'Off':(r.start&&today<r.start)?'Scheduled':(r.end&&today>r.end)?'Expired':'Active';
+ const val=r=>r.type=='percent'?r.value+'% off':R(r.value)+' off';
+ const target=r=>r.scope=='products'?(r.products||[]).map(id=>(allProducts().find(p=>p.id==id)||{name:id}).name).join(', ')||'—':(r.categories||[]).join(', ')||'—';
+ const dates=r=>r.start||r.end?`${r.start?fdate(r.start):'Now'} → ${r.end?fdate(r.end):'No end date'}`:'Always';
+ pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Discounts <button class="btn2" id="nd">+ New discount</button></h2><p class="mut">Discounts show on the store straight away: a lower price, the old price crossed out and a badge on the product. If two discounts apply to one product, the bigger saving is used.</p>
+ <div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Name</th><th>Discount</th><th>Applies to</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead><tbody id="dl"></tbody></table></div></div>`;
+ function draw(){const l=get();$('#dl').innerHTML=l.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td>${val(r)}</td><td style="max-width:280px"><span class="mut">${r.scope=='products'?'Products':'Categories'}:</span> ${esc(target(r))}</td><td>${dates(r)}</td><td><span class="pill s-${state(r)}">${state(r)}</span></td>
+  <td class="acts"><button class="btn2 o sm" data-t="${r.id}">${r.active?'Turn off':'Turn on'}</button> <button class="btn2 o sm" data-e="${r.id}">Edit</button> <button class="btn2 d sm" data-x="${r.id}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6" class="mut">No discounts yet. Click “+ New discount” to create one.</td></tr>'}
+ function form(r){r=r||{id:'',name:'',type:'percent',value:'',scope:'categories',categories:[],products:[],start:'',end:'',active:true};
+  const ps=allProducts();
+  openM(`<h2>${r.id?'Edit discount':'New discount'}</h2><form id="df" novalidate><div class="fg2">
+  <label class="f w">Discount name<input id="dn" value="${esc(r.name)}" placeholder="e.g. Winter sale"></label>
+  <label class="f">Type<select id="dt"><option value="percent" ${r.type=='percent'?'selected':''}>Percentage (%)</option><option value="fixed" ${r.type=='fixed'?'selected':''}>Fixed amount (Rs.)</option></select></label>
+  <label class="f">Value<input id="dv" type="number" min="1" value="${esc(r.value)}" placeholder="e.g. 20"></label>
+  <label class="f">Start date (optional)<input id="ds" type="date" value="${r.start||''}"></label><label class="f">End date (optional)<input id="de" type="date" value="${r.end||''}"></label>
+  <div class="f w"><span>Apply to</span><div class="lp" style="margin-top:8px"><label class="cc"><input type="radio" name="sc" value="categories" ${r.scope!='products'?'checked':''}> Whole categories</label><label class="cc"><input type="radio" name="sc" value="products" ${r.scope=='products'?'checked':''}> Specific products</label></div></div>
+  <div class="f w" id="bc"><div class="lp">${CAT.map(c=>`<label class="cc"><input type="checkbox" data-c value="${esc(c)}" ${(r.categories||[]).includes(c)?'checked':''}> ${esc(c)}</label>`).join('')}</div></div>
+  <div class="f w" id="bp"><input id="dq" type="search" placeholder="Search products" style="margin-bottom:8px"><div class="plist" id="pls">${ps.map(p=>`<label class="cc" data-n="${esc((p.name+' '+p.cat).toLowerCase())}"><input type="checkbox" data-p value="${p.id}" ${(r.products||[]).includes(p.id)?'checked':''}> ${esc(p.name)} <span class="mut">· ${esc(p.cat)} · ${R(p.price)}</span></label>`).join('')}</div></div>
+  <label class="cc f w"><input type="checkbox" id="da" ${r.active?'checked':''}> Active</label></div>
+  <p class="mut" id="dx" style="margin-top:8px"></p><div class="er2" id="de2" role="alert"></div>
+  <div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save discount</button><button class="btn2 o" type="button" id="dc">Cancel</button></div></form>`);
+  const scope=()=>document.querySelector('input[name=sc]:checked').value;
+  const sync=()=>{$('#bc').style.display=scope()=='categories'?'':'none';$('#bp').style.display=scope()=='products'?'':'none';ex()};
+  const picked=()=>scope()=='products'?$$('#df [data-p]:checked').map(i=>i.value):$$('#df [data-c]:checked').map(i=>i.value);
+  function ex(){const v=+$('#dv').value,t=$('#dt').value,pk=picked();const p=(scope()=='products'?ps.filter(x=>pk.includes(x.id)):ps.filter(x=>pk.includes(x.cat)))[0];
+   $('#dx').textContent=p&&v>0?`Example: ${p.name} ${R(p.price)} becomes ${R(t=='percent'?Math.round(p.price*(1-v/100)):Math.max(1,p.price-v))}.`:''}
+  $('#df').oninput=e=>{if(e.target.id=='dq'){const q=e.target.value.trim().toLowerCase();$$('#pls label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}ex()};
+  $('#df').onchange=sync;$('#dc').onclick=closeM;sync();
+  $('#df').onsubmit=e=>{e.preventDefault();const v=+$('#dv').value,t=$('#dt').value,errs=[];
+   if(!$('#dn').value.trim())errs.push('Enter a name for this discount.');
+   if(!(v>0))errs.push('Enter the discount value.');else if(t=='percent'&&v>=100)errs.push('A percentage discount must be below 100.');
+   if(!picked().length)errs.push(scope()=='products'?'Choose at least one product.':'Choose at least one category.');
+   if($('#ds').value&&$('#de').value&&$('#de').value<$('#ds').value)errs.push('The end date must be after the start date.');
+   if(errs.length){$('#de2').innerHTML='<ul>'+errs.map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';return}
+   const rec={id:r.id||'D'+Date.now().toString(36),name:$('#dn').value.trim(),type:t,value:v,scope:scope(),categories:scope()=='categories'?picked():[],products:scope()=='products'?picked():[],start:$('#ds').value,end:$('#de').value,active:$('#da').checked};
+   const l=get();put(r.id?l.map(x=>x.id==r.id?rec:x):l.concat(rec));closeM();draw()}}
+ $('#nd').onclick=()=>form();
+ pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const l=get();
+  if(b.dataset.e)form(l.find(x=>x.id==b.dataset.e));
+  else if(b.dataset.t){put(l.map(x=>x.id==b.dataset.t?Object.assign({},x,{active:!x.active}):x));draw()}
+  else if(b.dataset.x&&confirm('Delete this discount? Prices go back to normal.')){put(l.filter(x=>x.id!=b.dataset.x));draw()}});
+ draw()}
+function sliderPage(){
+ const get=()=>{const l=store.get('gi-slides',null);return (Array.isArray(l)?l:SLD_DEF.map(x=>Object.assign({},x))).map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z)};
+ const put=l=>{if(!store.set('gi-slides',l))alert('The browser storage is full. Use a smaller image or delete an older slide.')};
+ const src=v=>v&&v.startsWith('IM:')?IM[v.slice(3)]:(v||'');
+ const LAY={image:'Image only',text:'Text and image',clocks:'Text with clocks'};
+ const links=[['','No link']].concat(CATS.filter(c=>c[0]!='home').map(c=>[c[2],c[1]]));
+ const linkName=h=>{const f=links.find(l=>l[0]==h);if(f)return f[1];const m=/^product\.html\?id=(.+)$/.exec(h||'');if(m){const p=allProducts().find(x=>x.id==m[1]);return p?'Product: '+p.name:h}return h||'No link'};
+ const thumb=z=>z.layout=='clocks'?`<span class="sth sv">${CK[0].svg}${CK[2].svg}</span>`:(src(z.image)?`<img class="sth" src="${src(z.image)}" alt="">`:`<span class="sth sv"></span>`);
+ pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Landing page slider <button class="btn2" id="ns">+ Add slide</button></h2>
+ <p class="mut">These slides rotate at the top of the home page. Use the arrows to change the order. Best image size: <b>1755 × 544 px</b> (wide banner). On phones the image is cropped to the middle, so keep the main part there.</p><div id="sl2" style="margin-top:14px"></div>
+ <p style="margin-top:16px"><button class="btn2 o sm" id="rs">Reset to the original slides</button></p></div>`;
+ function draw(){const l=get();$('#sl2').innerHTML=l.map((z,i)=>`<div class="srow"><div class="sth-w">${thumb(z)}</div><div class="sinfo"><b>${esc(z.title||'Untitled')}</b><span class="mut">${LAY[z.layout]||z.layout} · Links to: ${esc(linkName(z.link))}</span><span class="pill s-${z.active!==false?'Active':'Off'}" style="align-self:flex-start">${z.active!==false?'Showing':'Hidden'}</span></div>
+  <div class="acts"><button class="btn2 o sm" data-u="${i}" ${i==0?'disabled':''} aria-label="Move up">↑</button> <button class="btn2 o sm" data-d="${i}" ${i==l.length-1?'disabled':''} aria-label="Move down">↓</button> <button class="btn2 o sm" data-v="${i}">${z.active!==false?'Hide':'Show'}</button> <button class="btn2 o sm" data-e="${i}">Edit</button> <button class="btn2 d sm" data-x="${i}">Delete</button></div></div>`).join('')||'<p class="mut">No slides. The slider is hidden on the home page until you add one.</p>'}
+ const toJpg=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=1800,k=Math.min(1,m/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.82))};im.onerror=()=>res(null);im.src=r.result};r.onerror=()=>res(null);r.readAsDataURL(f)});
+ function form(idx){const l=get(),z=idx==null?{id:'',layout:'image',image:'',title:'',subtitle:'',button:'Shop now',link:'',active:true}:Object.assign({},l[idx]);let img=z.image||'';
+  const prods=allProducts();const isCustom=z.link&&!links.some(x=>x[0]==z.link)&&!/^product\.html\?id=/.test(z.link);
+  const lays=Object.entries(LAY).filter(([k])=>k!='clocks'||z.layout=='clocks');
+  openM(`<h2>${idx==null?'Add slide':'Edit slide'}</h2><form id="sf2" novalidate><div class="fg2">
+  <label class="f w">Layout<select id="sly">${lays.map(([k,t])=>`<option value="${k}" ${z.layout==k?'selected':''}>${t}</option>`).join('')}</select></label>
+  <div class="f w" id="sib"><span id="sit">Image</span><div class="drop" id="sdz" style="margin-top:6px">Click to choose an image<input type="file" id="sfi" accept="image/*" hidden></div><div id="sip" style="margin-top:8px"></div></div>
+  <label class="f w"><span id="stt">Title</span><input id="stl" value="${esc(z.title)}"></label>
+  <label class="f w" id="ssb">Short text<textarea id="ssu" rows="2">${esc(z.subtitle||'')}</textarea></label>
+  <label class="f" id="sbb">Button text<input id="sbt" value="${esc(z.button||'')}"></label>
+  <label class="f w">Link<select id="slk"><option value="">No link</option><optgroup label="Collections">${links.slice(1).map(x=>`<option value="${x[0]}" ${z.link==x[0]?'selected':''}>${x[1]}</option>`).join('')}</optgroup><optgroup label="Products">${prods.map(p=>`<option value="product.html?id=${p.id}" ${z.link=='product.html?id='+p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</optgroup><option value="__c" ${isCustom?'selected':''}>Custom link…</option></select></label>
+  <label class="f w" id="scb" style="display:${isCustom?'':'none'}">Custom link<input id="scl" value="${isCustom?esc(z.link):''}" placeholder="e.g. vases.html or https://…"></label>
+  <label class="cc f w"><input type="checkbox" id="sac" ${z.active!==false?'checked':''}> Show this slide on the home page</label></div>
+  <div class="er2" id="se" role="alert"></div><div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save slide</button><button class="btn2 o" type="button" id="sc2">Cancel</button></div></form>`);
+  const showImg=()=>{$('#sip').innerHTML=img&&z.layout!='clocks'?`<img src="${src(img)}" alt="Preview" style="max-width:100%;max-height:140px;border:1px solid var(--line)"> <button type="button" class="btn2 d sm" id="sri">Remove image</button>`:'';const b=$('#sri');if(b)b.onclick=()=>{img='';showImg()}};
+  const sync=()=>{const ly=$('#sly').value;$('#sib').style.display=ly=='clocks'?'none':'';$('#ssb').style.display=$('#sbb').style.display=ly=='image'?'none':'';$('#stt').textContent=ly=='image'?'Name (used for accessibility)':'Title';$('#sit').textContent=ly=='image'?'Banner image (1755 × 544 px)':'Image on the right (optional)'};
+  z.layout=z.layout;$('#sly').onchange=()=>{z.layout=$('#sly').value;sync();showImg()};
+  $('#slk').onchange=()=>{$('#scb').style.display=$('#slk').value=='__c'?'':'none'};
+  $('#sdz').onclick=()=>$('#sfi').click();$('#sfi').onchange=async e=>{const f=e.target.files[0];if(!f)return;const d=await toJpg(f);if(d){img=d;showImg()}e.target.value=''};
+  $('#sc2').onclick=closeM;sync();showImg();
+  $('#sf2').onsubmit=e=>{e.preventDefault();const ly=$('#sly').value,errs=[],lk=$('#slk').value=='__c'?$('#scl').value.trim():$('#slk').value;
+   if(!$('#stl').value.trim())errs.push('Enter a title.');if(ly=='image'&&!img)errs.push('Choose a banner image.');
+   if(errs.length){$('#se').innerHTML='<ul>'+errs.map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';return}
+   const rec={id:z.id||'S'+Date.now().toString(36),layout:ly,image:ly=='clocks'?'':img,title:$('#stl').value.trim(),subtitle:ly=='image'?'':$('#ssu').value.trim(),button:ly=='image'?'':$('#sbt').value.trim(),link:lk,active:$('#sac').checked};
+   const n=get();idx==null?n.push(rec):n[idx]=rec;put(n);closeM();draw()}}
+ $('#ns').onclick=()=>form();
+ $('#rs').onclick=()=>{if(confirm('Go back to the three original slides? Your own slides will be removed.')){try{localStorage.removeItem('gi-slides')}catch(e){}draw()}};
+ pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;const l=get(),d=b.dataset;
+  if(d.e!=null)form(+d.e);
+  else if(d.u!=null){const i=+d.u;[l[i-1],l[i]]=[l[i],l[i-1]];put(l);draw()}
+  else if(d.d!=null){const i=+d.d;[l[i+1],l[i]]=[l[i],l[i+1]];put(l);draw()}
+  else if(d.v!=null){const i=+d.v;l[i].active=l[i].active===false;put(l);draw()}
+  else if(d.x!=null&&confirm('Delete this slide?')){l.splice(+d.x,1);put(l);draw()}});
+ draw()}
+function settingsPage(){
+ const S=store.get('gi-settings',{}),B=Object.assign({title:'',bank:'',number:'',iban:'',note:''},S.bank||{}),D=Object.assign({karachi:400,other:600},S.delivery||{});
+ pg.innerHTML=`<div class="ok2" id="okm" role="status"></div><form id="sf3" novalidate><div class="cd2" style="margin-top:0"><h2>Delivery charges</h2><p class="mut">Charged at checkout. Orders to Karachi use the first amount, every other city uses the second.</p>
+ <div class="fg2" style="margin-top:12px"><label class="f">Karachi (Rs.)<input id="dk" type="number" min="0" value="${D.karachi}"></label><label class="f">Out of city (Rs.)<input id="do" type="number" min="0" value="${D.other}"></label></div></div>
+ <div class="cd2"><h2>Bank transfer details</h2><p class="mut">Customers see these only when they choose Bank transfer at checkout. Leave empty to show a short message instead.</p>
+ <div class="fg2" style="margin-top:12px"><label class="f">Account title<input id="bt" value="${esc(B.title)}"></label><label class="f">Bank name<input id="bb" value="${esc(B.bank)}"></label><label class="f">Account number<input id="bn" value="${esc(B.number)}"></label><label class="f">IBAN<input id="bi" value="${esc(B.iban)}"></label><label class="f w">Extra instructions (optional)<textarea id="bx" rows="2">${esc(B.note)}</textarea></label></div></div>
+ <div class="er2" id="me" role="alert"></div><div style="margin-top:18px"><button class="btn2" type="submit">Save settings</button></div></form>`;
+ $('#sf3').onsubmit=e=>{e.preventDefault();const k=+$('#dk').value,o=+$('#do').value;
+  if(!(k>=0)||!(o>=0)||$('#dk').value===''||$('#do').value===''){$('#me').innerHTML='<ul><li>Enter both delivery charges (0 or more).</li></ul>';return}
+  $('#me').innerHTML='';store.set('gi-settings',{delivery:{karachi:k,other:o},bank:{title:$('#bt').value.trim(),bank:$('#bb').value.trim(),number:$('#bn').value.trim(),iban:$('#bi').value.trim(),note:$('#bx').value.trim()}});
+  const m=$('#okm');m.style.display='block';m.textContent='Settings saved.';scrollTo(0,0)}}
+({dashboard,settings:settingsPage,slider:sliderPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
+})();
