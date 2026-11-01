@@ -397,6 +397,16 @@ function sliderPage(){
   else if(d.d!=null){const i=+d.d;[l[i+1],l[i]]=[l[i],l[i+1]];put(l);draw()}
   else if(d.v!=null){const i=+d.v;l[i].active=l[i].active===false;put(l);draw()}
   else if(d.x!=null&&confirm('Delete this slide?')){l.splice(+d.x,1);put(l);draw()}});
+ /* Explore by Collection images */
+ {const CK2='gi-collimg',cget=()=>{try{return JSON.parse(localStorage.getItem(CK2)||'{}')||{}}catch(e){return{}}};
+  const cput=o=>{try{localStorage.setItem(CK2,JSON.stringify(o));return true}catch(e){alert('The browser storage is full. Use a smaller image.');return false}};
+  const cats=CATS.filter(c=>c[0]!='home');
+  const toImg=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=900,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);let d=c.toDataURL('image/webp',.82);if(d.indexOf('data:image/webp')!==0)d=c.toDataURL('image/jpeg',.8);res(d)};im.onerror=()=>res(null);im.src=r.result};r.onerror=()=>res(null);r.readAsDataURL(f)});
+  pg.insertAdjacentHTML('beforeend','<div class="cd2" id="cim"><h2>Explore by Collection images</h2><p class="mut">Choose the photo shown on each category card on the home page. Square photos work best (about <b>900 × 900 px</b>); they are shrunk to WebP automatically. If you do not choose one, the card uses the first product photo in that category.</p><div id="cil" style="margin-top:14px"></div></div>');
+  const drawC=()=>{const o=cget();$('#cil').innerHTML=cats.map(c=>{const u=o[c[2]];return `<div class="srow"><div class="sth-w">${u?`<img class="sth" src="${u}" alt="">`:'<span class="sth sv"></span>'}</div><div class="sinfo"><b>${esc(c[1])}</b><span class="mut">${u?'Custom photo':'Automatic (first product photo)'}</span></div><div class="acts"><label class="btn2 o sm" style="cursor:pointer">${u?'Change':'Choose photo'}<input type="file" accept="image/*" hidden data-ci="${esc(c[2])}"></label> ${u?`<button class="btn2 o sm" data-cr="${esc(c[2])}">Remove</button>`:''}</div></div>`}).join('')};
+  $('#cim').addEventListener('change',async e=>{const k=e.target.dataset.ci;if(!k||!e.target.files[0])return;const d=await toImg(e.target.files[0]);if(d){const o=cget();o[k]=d;cput(o)}drawC()});
+  $('#cim').addEventListener('click',e=>{const b=e.target.closest('[data-cr]');if(!b)return;const o=cget();delete o[b.dataset.cr];cput(o);drawC()});
+  drawC()}
  draw()}
 function settingsPage(){
  const S=store.get('gi-settings',{}),B=Object.assign({title:'',bank:'',number:'',iban:'',note:''},S.bank||{}),D=Object.assign({karachi:400,other:600},S.delivery||{});
