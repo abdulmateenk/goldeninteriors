@@ -15,4 +15,4 @@ Disallow: /checkout
 Disallow: /search
 Disallow: /api/
 
-Sitemap: https://goldeninteriors.pk/sitemap.xml
+Sitemap: https://www.goldeninteriors.pk/sitemap.xml

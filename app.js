@@ -216,7 +216,7 @@ if(PG=='product'){(async()=>{
  $('#morecat').innerHTML=CATS.filter(c=>c[0]!='home'&&c[0]!=KEY).map(c=>({c,p:P.find(y=>y.c==c[1])||P.find(y=>(SLUG[y.c]||'')==c[0])})).sort((a,b)=>!!b.p-!!a.p).slice(0,4).map((r,i)=>`<a href="${r.c[2]}" aria-label="${h2(r.c[1])}">${r.p?med(r.p,0,''):`<img src="${IM[['s1','s2','s3','deco'][i%4]]}" alt="">`}<span>${h2(r.c[1])}</span></a>`).join('');
  /* SEO: description and product structured data */
  setMeta('description',(x.name+'. '+(x.description||'')).slice(0,155));
- {const u='https://goldeninteriors.pk/product?id='+encodeURIComponent(x.id);let cl=document.querySelector('link[rel=canonical]');if(!cl){cl=document.createElement('link');cl.rel='canonical';document.head.appendChild(cl)}cl.href=u;
+ {const u='https://www.goldeninteriors.pk/product?id='+encodeURIComponent(x.id);let cl=document.querySelector('link[rel=canonical]');if(!cl){cl=document.createElement('link');cl.rel='canonical';document.head.appendChild(cl)}cl.href=u;
   [['og:title',document.title],['og:description',(x.description||'').slice(0,155)],['og:url',u]].forEach(([p,v])=>{let m=document.querySelector('meta[property="'+p+'"]');if(m)m.content=v});}
  const lowP=lowV?lowV.price:x.price,highP=lowV?Math.max(...V.map(v=>v.price)):x.price,inStock=(VM?V.reduce((a,w)=>a+w.stock,0):(x.stock==null?1:x.stock))>0;
  const ld={'@context':'https://schema.org','@type':'Product',name:x.name,description:x.description,sku:VM?V[0].sku:x.id,category:x.category,brand:{'@type':'Brand',name:'Golden Interiors'},
