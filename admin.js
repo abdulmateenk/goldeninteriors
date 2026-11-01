@@ -7,6 +7,12 @@ const ROOT=$('#app'),PAGE=ROOT.dataset.ap;
 /* DEMO ONLY: these credentials sit in the page code, so anyone can read them.
    A real site must check the login on your server. */
 const CRED={e:'admin@gmail.com',p:'admin1234'};
+/* ---- shared orders (server) ---- */
+const SYNCK='gi-synckey',NET=/^https?:$/.test(location.protocol);
+const syncKey=()=>{try{return localStorage.getItem(SYNCK)||CRED.p}catch(e){return CRED.p}};
+async function apiOrders(method,body,key){if(!NET)return{status:0,ok:false,json:null};const k=key||syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
+ try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/orders',{method,headers:h,body:body?JSON.stringify(body):undefined,signal:c.signal});let j=null;try{j=await r.json()}catch(e){}return{status:r.status,ok:r.ok,json:j}}catch(e){return{status:0,ok:false,json:null}}finally{clearTimeout(t)}}
+
 const iso=d=>d.toISOString().slice(0,10);
 const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
 const fdate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -17,9 +23,12 @@ if(PAGE=='login'){
  $('#pwt').onclick=()=>{const p=$('#pw');const s=p.type=='password';p.type=s?'text':'password';$('#pwt').textContent=s?'Hide':'Show'};
  $('#lf').onsubmit=e=>{e.preventDefault();const em=$('#em').value.trim().toLowerCase(),pw=$('#pw').value;
   if(!em||!pw){$('#er').textContent='Enter your email and password.';return}
-  if(em!==CRED.e||pw!==CRED.p){$('#er').textContent='Incorrect email or password.';$('#pw').value='';return}
-  if(!store.set('gi-admin',{email:em,at:Date.now()})){$('#er').textContent='Your browser is blocking storage, so the login cannot be kept. Allow site data and try again.';return}
-  location.href='dashboard'};
+  const fin=()=>{try{localStorage.setItem(SYNCK,pw)}catch(e){}
+   if(!store.set('gi-admin',{email:em,at:Date.now()})){$('#er').textContent='Your browser is blocking storage, so the login cannot be kept. Allow site data and try again.';return}
+   location.href='dashboard'};
+  if(em===CRED.e&&pw===CRED.p)return fin();
+  if(em!==CRED.e){$('#er').textContent='Incorrect email or password.';$('#pw').value='';return}
+  $('#er').textContent='Checking…';apiOrders('GET',null,pw).then(x=>{if(x.ok)fin();else{$('#er').textContent='Incorrect email or password.';$('#pw').value=''}})};
  return}
 if(!store.get('gi-admin',null)){location.replace('login');return}
 /* ---------- data ---------- */
@@ -41,7 +50,17 @@ function seedOrders(){const cu=[['Ayesha Raza','Karachi'],['Kamran Siddiqui','La
 /* one-time clean start: removes the old sample orders, customers and finance entries */
 try{if(localStorage.getItem('gi-reset')!=='2'){['gi-orders','gi-orders-new','gi-ledger'].forEach(k=>localStorage.removeItem(k));localStorage.setItem('gi-reset','2')}}catch(e){}
 const getOrders=()=>{let o=store.get('gi-orders',null);if(!o){o=[];store.set('gi-orders',o)}const nw=store.get('gi-orders-new',[]);if(nw.length){o=nw.concat(o);store.set('gi-orders',o);try{localStorage.removeItem('gi-orders-new')}catch(e){}}return o};
-const saveOrders=o=>store.set('gi-orders',o);
+const idn=o=>parseInt(String(o.id).replace(/\D/g,''))||0,strip=o=>{const c=Object.assign({},o);delete c.updatedAt;return JSON.stringify(c)};
+async function syncOrders(){if(!syncKey())return{state:'nokey'};
+ const g=await apiOrders('GET');if(!g.ok)return{state:g.status==401?'badkey':g.status==503?'nostorage':'offline'};
+ const remote=g.json.orders||[],local=store.get('gi-orders',[])||[],rm=new Map(remote.map(x=>[x.id,x])),lm=new Map(local.map(x=>[x.id,x]));
+ const merged=remote.map(x=>{const l=lm.get(x.id);return l&&String(l.updatedAt||'')>String(x.updatedAt||'')?l:x});
+ const only=local.filter(x=>!rm.has(x.id));
+ if(only.length&&!localStorage.getItem('gi-pushed')){for(const x of only){x.updatedAt=x.updatedAt||new Date().toISOString();await apiOrders('PUT',{order:x,create:true})}try{localStorage.setItem('gi-pushed','1')}catch(e){}}
+ const all=merged.concat(only).sort((a,b)=>idn(b)-idn(a));store.set('gi-orders',all);return{state:'ok',count:remote.length}}
+const saveOrders=o=>{const prev=new Map((store.get('gi-orders',[])||[]).map(x=>[x.id,strip(x)])),ch=[];
+ if(syncKey())o.forEach(x=>{if(prev.get(x.id)!==strip(x)){x.updatedAt=new Date().toISOString();ch.push([x,!prev.has(x.id)])}});
+ const ok=store.set('gi-orders',o);ch.forEach(([x,cr])=>apiOrders('PUT',{order:x,create:cr}).then(res=>{if(res.status==409)alert('Order '+x.id+' already exists on the server. Refresh the page.');else if(!res.ok)console.warn('order not synced',res.status)}));return ok};
 const total=o=>o.items.reduce((a,i)=>a+i.price*i.qty,0)+o.delivery;
 function seedLedger(){return[{id:'L1',date:daysAgo(4),type:'Expense',category:'Courier charges',note:'Weekly courier settlement',amount:9400},{id:'L2',date:daysAgo(9),type:'Expense',category:'Marketing',note:'Instagram and Facebook ads',amount:12000},{id:'L3',date:daysAgo(18),type:'Expense',category:'Stock purchase',note:'Ceramic vases from supplier',amount:48000},{id:'L4',date:daysAgo(26),type:'Expense',category:'Rent',note:'Showroom rent',amount:30000},{id:'L5',date:daysAgo(30),type:'Expense',category:'Salaries',note:'Staff salaries',amount:40000},{id:'L6',date:daysAgo(14),type:'Income',category:'Design consultation',note:'Interior consultation fee',amount:35000},{id:'L7',date:daysAgo(45),type:'Expense',category:'Stock purchase',note:'Lighting and clocks',amount:36000}]}
 const getLedger=()=>{let l=store.get('gi-ledger',null);if(!l){l=[];store.set('gi-ledger',l)}return l};
@@ -419,5 +438,11 @@ function settingsPage(){
   if(!(k>=0)||!(o>=0)||$('#dk').value===''||$('#do').value===''){$('#me').innerHTML='<ul><li>Enter both delivery charges (0 or more).</li></ul>';return}
   $('#me').innerHTML='';store.set('gi-settings',{delivery:{karachi:k,other:o},bank:{title:$('#bt').value.trim(),bank:$('#bb').value.trim(),number:$('#bn').value.trim(),iban:$('#bi').value.trim(),note:$('#bx').value.trim()}});
   const m=$('#okm');m.style.display='block';m.textContent='Settings saved.';scrollTo(0,0)}}
-({dashboard,settings:settingsPage,slider:sliderPage,links:linksPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
+const RUN=()=>({dashboard,settings:settingsPage,slider:sliderPage,links:linksPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
+const SYNCP=['dashboard','orders','finance','invoices'].includes(PAGE);
+(async()=>{let st=null;if(SYNCP){try{st=await Promise.race([syncOrders(),new Promise(r=>setTimeout(()=>r({state:'offline'}),9000))])}catch(e){st={state:'offline'}}}
+ RUN();
+ if(PAGE=='orders'||PAGE=='dashboard'){const M={nokey:'',badkey:'Customer orders cannot be loaded: your admin password does not match the one set on the server (ADMIN_KEY). Log out and log in with the server password.',nostorage:'Customer orders cannot arrive yet: the server storage (database) is not connected. Ask your developer or follow the setup steps.',offline:'Could not reach the server. Showing the orders saved in this browser.'};
+  if(st&&st.state!='ok'&&M[st.state])pg.insertAdjacentHTML('afterbegin','<div class="ok2" style="display:block;background:#FFF6E0;border-color:#E8D49A;color:#5a4410">'+M[st.state]+'</div>');
+  if(st&&st.state=='ok')setInterval(async()=>{if(document.hidden||modal.classList.contains('o'))return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;const b=localStorage.getItem('gi-orders');const s2=await syncOrders();if(s2.state=='ok'&&localStorage.getItem('gi-orders')!==b)location.reload()},45000)}})();
 })();

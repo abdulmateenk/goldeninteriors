@@ -153,3 +153,8 @@ In the demo the order is saved in the browser and appears in Admin > Orders; sto
 - `sitemap.xml`, `robots.txt`, `og-image.jpg` and `vercel.json` (cache + security headers) are in the repo root. Canonical URLs use https://goldeninteriors.pk.
 - Search and checkout pages are `noindex`; admin pages are blocked in robots.txt.
 - Images are WebP. Photos added in Admin are resized to 1200 px and converted to WebP automatically.
+
+## Shared orders (server)
+- `api/orders.js` + `api/_kv.js`: customers POST orders to `/api/orders`; the admin loads them with the header `x-admin-key`.
+- Needs a Redis database connected in Vercel (Storage > Upstash Redis, which adds `KV_REST_API_URL` / `KV_REST_API_TOKEN`) and an `ADMIN_KEY` environment variable equal to the admin password.
+- Customer orders are numbered by the server starting at GI-2001. If the server is unreachable the order waits in the customer's browser and is re-sent on the next visit.

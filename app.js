@@ -1,16 +1,18 @@
+window.addEventListener('error',function(e){try{localStorage.setItem('gi-lasterr',(e.message||'')+' @'+(e.filename||'').split('/').pop()+':'+e.lineno)}catch(x){}if(/[?&]debug=1/.test(location.search)){var d=document.createElement('div');d.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#b00020;color:#fff;font:12px/1.4 monospace;padding:8px';d.textContent='Script error: '+(e.message||'')+' @'+(e.filename||'').split('/').pop()+':'+e.lineno;document.body.appendChild(d)}});
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const R=n=>'Rs. '+n.toLocaleString('en-US');
 const byId=id=>P.find(x=>x.id==id);
-const med=(x,i=0,alt)=>x.photo?`<img src="${x.photo}" alt="${alt==null?x.n:alt}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fbs" style="display:none">${x.svg}</span>`:x.svg?x.svg:x.imgs?`<img src="${x.imgs[i]||x.imgs[0]||''}" alt="${alt==null?x.n:alt}">`:`<img src="${IM[x.im[i]]}" alt="${alt==null?x.n:alt}" ${x.pos?`style="object-position:${x.pos}"`:''}>`;
+const med0=(x,i=0,alt)=>x.photo?`<img src="${x.photo}" alt="${alt==null?x.n:alt}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fbs" style="display:none">${x.svg}</span>`:x.svg?x.svg:x.imgs?`<img src="${x.imgs[i]||x.imgs[0]||''}" alt="${alt==null?x.n:alt}">`:`<img src="${IM[x.im[i]]}" alt="${alt==null?x.n:alt}" ${x.pos?`style="object-position:${x.pos}"`:''}>`;
 /* discounts created in the admin Discount page */
-const DR=(()=>{try{return JSON.parse(localStorage.getItem('gi-discounts')||'[]')}catch(e){return[]}})();
+const DR=(()=>{try{const d=JSON.parse(localStorage.getItem('gi-discounts')||'[]');return Array.isArray(d)?d.filter(r=>r&&typeof r=='object'):[]}catch(e){return[]}})();
 const TODAY=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
 function dOf(x,p){let best=null;DR.forEach(r=>{if(!r.active||(r.start&&TODAY<r.start)||(r.end&&TODAY>r.end))return;
  const hit=r.scope=='products'?(r.products||[]).includes(x.id):(r.categories||[]).includes(x.c);if(!hit)return;
  const np=r.type=='percent'?Math.round(p*(1-r.value/100)):Math.max(1,Math.round(p-r.value));if(np<p&&(!best||np<best.p))best={p:np,r:r,off:r.type=='percent'?Math.round(r.value)+'%':'Rs. '+Math.round(r.value).toLocaleString('en-US')}});return best}
 const card=(x,i=0)=>`<a class="pc" href="product?id=${x.id}" style="animation-delay:${i*50}ms"><div class="im">${x.tag?`<span class="tag">${dOf(x,x.p)?'−'+dOf(x,x.p).off:x.tag}</span>`:(dOf(x,x.p)?`<span class="tag">−${dOf(x,x.p).off}</span>`:'')}${med(x)}</div><h3 title="${x.n}" class="${x.n.length>34?'lg':''}">${x.n}</h3><p class="pr">${x.from?'From ':''}${dOf(x,x.p)?R(dOf(x,x.p).p)+`<s>${R(x.p)}</s>`:R(x.p)+(x.o?`<s>${R(x.o)}</s>`:'')}</p></a>`;
-const cards=a=>a.map(card).join('');
+const med=(x,i,alt)=>{try{return med0(x,i,alt)}catch(e){return''}};
+const cards=a=>a.map(x=>{try{return card(x)}catch(e){return''}}).join('');
 const MN=document.querySelector('main');const PG=MN.dataset.page;let KEY=MN.dataset.key||'';
 /* shared header, footer */
 $('#logo').src=IM.logo;$('#flogo').src=IM.logo;
@@ -76,7 +78,9 @@ const GI={API_BASE:'',EMAIL_ON:false /* set to true after the /api/order email f
  async getProduct(id){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/products/'+encodeURIComponent(id));if(r.ok)return await r.json()}catch(e){}}return localProduct(id)},
  async addToCart(line){if(GI.API_BASE){try{await fetch(GI.API_BASE+'/cart/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(line)})}catch(e){}}},
  emailOrder(o){if(!GI.EMAIL_ON||!/^https?:$/.test(location.protocol))return Promise.resolve(null);const c=new AbortController();setTimeout(()=>c.abort(),20000);return fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o),signal:c.signal}).then(r=>r.ok?r.json():null).catch(()=>null)},
- async placeOrder(o){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});if(r.ok)return await r.json()}catch(e){}}return null},
+ async placeOrder(o){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});if(r.ok)return await r.json()}catch(e){}}
+  if(!/^https?:$/.test(location.protocol))return null;
+  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o),signal:c.signal});clearTimeout(t);if(r.ok){const j=await r.json();if(j&&j.id)return j}}catch(e){}return null},
  async checkout(lines){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:lines})});const j=await r.json();if(j&&j.url){location.href=j.url;return true}}catch(e){}}return false},
  async wishlist(id,on){if(GI.API_BASE){try{await fetch(GI.API_BASE+'/wishlist/'+encodeURIComponent(id),{method:on?'POST':'DELETE'})}catch(e){}}}};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200)}
@@ -97,13 +101,13 @@ renderC();
 /* HOME */
 if(PG=='home'){
  
- const onHome=k=>{const ok=x=>x.show.includes(k)||(k=='sale'&&dOf(x,x.p));return P.filter(x=>x.custom&&ok(x)).reverse().concat(P.filter(x=>!x.custom&&ok(x)))};
- $('#g-new').innerHTML=cards(onHome('new').slice(0,8));$('#g-clocks').innerHTML=cards(onHome('clocks').slice(0,8));
- [['featured','g-feat']].forEach(([k,g])=>{const l=onHome(k).slice(0,8);if(l.length){$('#'+g).innerHTML=cards(l)}else $('#'+g).closest('section').style.display='none'});
+ const onHome=k=>{const ok=x=>(x.show||[]).includes(k)||(k=='sale'&&dOf(x,x.p));return P.filter(x=>x.custom&&ok(x)).reverse().concat(P.filter(x=>!x.custom&&ok(x)))};
+ try{$('#g-new').innerHTML=cards(onHome('new').slice(0,8))}catch(e){console.error('new',e)}try{$('#g-clocks').innerHTML=cards(onHome('clocks').slice(0,8))}catch(e){console.error('clocks',e)}
+ try{[['featured','g-feat']].forEach(([k,g])=>{const l=onHome(k).slice(0,8);if(l.length){$('#'+g).innerHTML=cards(l)}else $('#'+g).closest('section').style.display='none'})}catch(e){console.error('featured row',e)}
  const COLL=CATS.filter(c=>c[0]!='home').map(c=>[c[1],c[0],c[0]=='clocks'?'ck3':c[0]=='new'?'s1':'',c[2]]);
- $('#ct').innerHTML=COLL.map(c=>{const pp=c[2]?null:P.find(y=>y.c==c[0]);const OV=(()=>{try{return JSON.parse(localStorage.getItem('gi-collimg')||'{}')}catch(e){return{}}})();return `<a class="cd" href="${c[3]}" aria-label="${c[0]}">${OV[c[3]]?`<img src="${OV[c[3]]}" alt="">`:c[2]?`<img src="${IM[c[2]]}" alt="">`:pp?`<div class="cs" style="padding:0">${med(pp,0,'')}</div>`:`<div class="cs ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z" fill="none" stroke="#A67C2E" stroke-width=".8"/><path d="M12 8l4 4-4 4-4-4z" fill="none" stroke="#A67C2E" stroke-width=".8"/></svg></div>`}<span>${c[0]}<i>Shop →</i></span></a>`}).join('')+onHome('explore').map(x=>`<a class="cd" href="product?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('');
- let SL=null;try{SL=JSON.parse(localStorage.getItem('gi-slides')||'null')}catch(e){}
- if(!Array.isArray(SL))SL=SLD_DEF;SL=SL.map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z);SL=SL.filter(z=>z.active!==false);
+ try{$('#ct').innerHTML=COLL.map(c=>{const pp=c[2]?null:P.find(y=>y.c==c[0]);const OV=(()=>{try{return JSON.parse(localStorage.getItem('gi-collimg')||'{}')}catch(e){return{}}})();return `<a class="cd" href="${c[3]}" aria-label="${c[0]}">${OV[c[3]]?`<img src="${OV[c[3]]}" alt="">`:c[2]?`<img src="${IM[c[2]]}" alt="">`:pp?`<div class="cs" style="padding:0">${med(pp,0,'')}</div>`:`<div class="cs ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z" fill="none" stroke="#A67C2E" stroke-width=".8"/><path d="M12 8l4 4-4 4-4-4z" fill="none" stroke="#A67C2E" stroke-width=".8"/></svg></div>`}<span>${c[0]}<i>Shop →</i></span></a>`}).join('')+onHome('explore').map(x=>`<a class="cd" href="product?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('')}catch(e){console.error('collections',e)}
+ try{let SL=null;try{SL=JSON.parse(localStorage.getItem('gi-slides')||'null')}catch(e){}
+ if(!Array.isArray(SL))SL=SLD_DEF;SL=SL.filter(z=>z&&typeof z=='object');SL=SL.map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z);SL=SL.filter(z=>z.active!==false);
  const sImg=v=>v&&v.startsWith('IM:')?IM[v.slice(3)]:(v||'');
  $('#tr').innerHTML=SL.map(z=>{const im=sImg(z.image),t=h2(z.title||''),lk=z.link?h2(z.link):'';
   if(z.layout=='image')return`<a class="sd" ${lk?`href="${lk}"`:''} aria-label="${t}"><img class="bg" src="${im}" alt="${t}"></a>`;
@@ -119,9 +123,9 @@ if(PG=='home'){
  const ct=$('#ct'),step=()=>ct.querySelector('.cd').offsetWidth+22;
  $('#cp').onclick=()=>ct.scrollBy({left:-step(),behavior:'smooth'});
  $('#cx2').onclick=()=>{ct.scrollLeft+ct.clientWidth>=ct.scrollWidth-4?ct.scrollTo({left:0,behavior:'smooth'}):ct.scrollBy({left:step(),behavior:'smooth'})};
- setInterval(()=>{if(!ct.matches(':hover'))$('#cx2').click()},4500);
+ setInterval(()=>{if(!ct.matches(':hover'))$('#cx2').click()},4500)}catch(e){console.error('slider',e)}
  /* featured product + two category tiles */
- {const fx=onHome('featured')[0]||P.find(x=>x.c=='Vases')||P[0];
+ try{const hasImg=x=>x&&(x.photo||x.svg||(x.imgs&&x.imgs[0])||(x.im&&x.im[0]));const fx=onHome('featured').find(hasImg)||P.find(x=>x.c=='Vases'&&hasImg(x))||P.find(hasImg);
   if(fx){$('#feat1').style.display='';
    const ph=fx.photo?[fx.photo,fx.photo2,fx.photo3].filter(Boolean):null,n=ph?ph.length:(fx.im?fx.im.length:(fx.imgs?fx.imgs.length:1));
    const view=i=>ph?`<img src="${ph[i]}" alt="${h2(fx.n)}">`:med(fx,i,fx.n);
@@ -132,10 +136,10 @@ if(PG=='home'){
    const dd=dOf(fx,fx.p);$('#f1p').innerHTML=(fx.from?'From ':'')+(dd?R(dd.p)+`<s>${R(fx.p)}</s>`:R(fx.p)+(fx.o?`<s>${R(fx.o)}</s>`:''));
    $('#f1d').textContent=fx.d||'';
    $('#f1a').href=$('#f1b').href='product?id='+fx.id+'#opts';
-   $('#f1b').textContent='Buy it now'}}
- ['#g-new','#g-feat','#g-clocks'].forEach(s=>{const g=$(s);if(!g)return;const w=document.createElement('div');w.className='gw';g.parentNode.insertBefore(w,g);w.appendChild(g);
-  const mk=(c,t,d)=>{const b=document.createElement('button');b.className='cb '+c+' gb';b.type='button';b.setAttribute('aria-label',d>0?'Next products':'Previous products');b.textContent=t;b.onclick=()=>{const c0=g.querySelector('.pc');if(!c0)return;const st=c0.offsetWidth+14;d>0&&g.scrollLeft+g.clientWidth>=g.scrollWidth-4?g.scrollTo({left:0,behavior:'smooth'}):g.scrollBy({left:d*st,behavior:'smooth'})};w.appendChild(b)};mk('p','‹',-1);mk('n','›',1)});
- [['#t-v','Vases','Elegant Vases & more'],['#t-f','Figurines','Statement Pieces']].forEach(([s,c,t])=>{const p=P.find(x=>x.c==c);$(s).innerHTML=(p?med(p,0,''):`<img src="${IM.deco}" alt="">`)+`<span>${t}<i>Shop ${c} →</i></span>`});
+   $('#f1b').textContent='Buy it now'}}catch(e){console.error('featured',e);try{$('#feat1').style.display='none'}catch(x){}}
+ try{['#g-new','#g-feat','#g-clocks'].forEach(s=>{const g=$(s);if(!g)return;const w=document.createElement('div');w.className='gw';g.parentNode.insertBefore(w,g);w.appendChild(g);
+  const mk=(c,t,d)=>{const b=document.createElement('button');b.className='cb '+c+' gb';b.type='button';b.setAttribute('aria-label',d>0?'Next products':'Previous products');b.textContent=t;b.onclick=()=>{const c0=g.querySelector('.pc');if(!c0)return;const st=c0.offsetWidth+14;d>0&&g.scrollLeft+g.clientWidth>=g.scrollWidth-4?g.scrollTo({left:0,behavior:'smooth'}):g.scrollBy({left:d*st,behavior:'smooth'})};w.appendChild(b)};mk('p','‹',-1);mk('n','›',1)})}catch(e){console.error('rows',e)}
+ try{[['#t-v','Vases','Elegant Vases & more'],['#t-f','Figurines','Statement Pieces']].forEach(([s,c,t])=>{const p=P.find(x=>x.c==c);$(s).innerHTML=(p?med(p,0,''):`<img src="${IM.deco}" alt="">`)+`<span>${t}<i>Shop ${c} →</i></span>`})}catch(e){console.error('tiles',e)}
 }
 /* CATEGORY PAGE */
 if(PG=='list'){const L=LIST[KEY];$('#lt').textContent=L[0];$('#ls').textContent=L[1];const a=L[2]();
@@ -258,9 +262,10 @@ if(PG=='checkout'){
   const pay=document.querySelector('input[name=pay]:checked').value,f=fee(v('city')),items=rows().map(({l,x})=>({name:x.n+(vname(l)?' – '+vname(l):''),qty:l.q,price:l.price,sku:l.sku,id:l.id}));
   const num=a=>{try{return JSON.parse(localStorage.getItem(a)||'[]')}catch(e){return[]}};
   const ids=num('gi-orders').concat(num('gi-orders-new')).map(o=>parseInt(String(o.id).replace(/\D/g,''))||0);
-  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,payment:pay,status:'Pending'};
+  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
   $('#place').disabled=true;$('#place2').disabled=true;$('#place').textContent='Placing order…';
-  await GI.placeOrder(order);const mailP=GI.emailOrder(order);
+  {const sv=await GI.placeOrder(order);if(sv&&sv.id)order.id=sv.id;else{try{const pq=JSON.parse(localStorage.getItem('gi-pending')||'[]');pq.push(order);localStorage.setItem('gi-pending',JSON.stringify(pq))}catch(e){}}}
+  const mailP=GI.emailOrder(order);
   try{const nw=num('gi-orders-new');nw.unshift(order);localStorage.setItem('gi-orders-new',JSON.stringify(nw))}catch(e){}
   /* take the quantities out of the stock of products added from the admin area */
   try{const pr=num('gi-products');let ch=false;items.forEach(i=>{const c=pr.find(p=>p.id==i.id);if(!c||!c.variants)return;const vv=c.variants.find(w=>w.sku==i.sku);if(vv){vv.stock=Math.max(0,vv.stock-i.qty);c.stock=c.variants.reduce((a,w)=>a+w.stock,0);ch=true}});if(ch)localStorage.setItem('gi-products',JSON.stringify(pr))}catch(e){}
@@ -294,10 +299,15 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
  i.value='';m.style.color='#F6CC66';m.textContent='Thank you for subscribing.'})})();
 
 /* footer quick links + their pages */
-(function(){const L=()=>{try{const l=JSON.parse(localStorage.getItem('gi-links')||'null');return Array.isArray(l)?l:LINKS_DEF}catch(e){return LINKS_DEF}};
+(function(){const L=()=>{try{const l=JSON.parse(localStorage.getItem('gi-links')||'null');return Array.isArray(l)?l.filter(z=>z&&typeof z=='object'):LINKS_DEF}catch(e){return LINKS_DEF}};
  const e2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  const ql=document.getElementById('ql');if(ql)ql.innerHTML=L().filter(z=>z.active!==false).map(z=>`<li><a href="policies?id=${encodeURIComponent(z.id)}">${e2(z.title)}</a></li>`).join('');
  const pb=document.getElementById('plb');if(pb){const id=new URLSearchParams(location.search).get('id'),z=L().find(x=>x.id==id)||L().filter(x=>x.active!==false)[0];
   if(!z){document.getElementById('plt').textContent='Page not found';document.getElementById('plc').textContent='Not found'}
   else{document.title=z.title+' | Golden Interiors';document.getElementById('plt').textContent=z.title;document.getElementById('plc').textContent=z.title;
    pb.innerHTML=String(z.content||'').split(/\n\s*\n/).map(p=>`<p>${e2(p.trim()).replace(/\n/g,'<br>')}</p>`).join('')}}})();
+
+/* orders that could not reach the server (no signal, server down) are sent again on the next visit */
+(async function(){try{const q=JSON.parse(localStorage.getItem('gi-pending')||'[]');if(!q.length||!/^https?:$/.test(location.protocol))return;const keep=[];
+ for(const o of q){let done=false;try{const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});if(r.ok||(r.status>=400&&r.status<500&&r.status!=429))done=true}catch(e){}if(!done)keep.push(o)}
+ localStorage.setItem('gi-pending',JSON.stringify(keep))}catch(e){}})();
