@@ -81,8 +81,8 @@ const GI={API_BASE:'',EMAIL_ON:false /* set to true after the /api/order email f
  async wishlist(id,on){if(GI.API_BASE){try{await fetch(GI.API_BASE+'/wishlist/'+encodeURIComponent(id),{method:on?'POST':'DELETE'})}catch(e){}}}};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200)}
 /* cart (remembered across pages when the browser allows) */
-let cart=[];try{cart=JSON.parse(localStorage.getItem('gi-cart')||'[]').filter(l=>l.sku&&byId(l.id))}catch(e){}
-const save=()=>{try{localStorage.setItem('gi-cart',JSON.stringify(cart))}catch(e){}};
+let cart=[];try{let raw=null;try{raw=localStorage.getItem('gi-cart')}catch(e){}if(!raw){try{raw=sessionStorage.getItem('gi-cart')}catch(e){}}cart=(JSON.parse(raw||'[]')||[]).filter(l=>l&&l.id&&l.price>0&&l.q>0&&byId(l.id)).map(l=>Object.assign({sku:l.id,sel:{}},l))}catch(e){}
+const save=()=>{const j=JSON.stringify(cart);try{localStorage.setItem('gi-cart',j)}catch(e){}try{sessionStorage.setItem('gi-cart',j)}catch(e){}};
 function renderC(){const n=cart.reduce((a,b)=>a+b.q,0);$('#cn').textContent=n;
  $('#items').innerHTML=cart.length?cart.map((l,i)=>{const x=byId(l.id);return`<div class="it"><a class="t" href="product?id=${x.id}">${med(x,0,'')}</a><div><b>${x.n}</b><br><span class="mut">${Object.values(l.sel||{}).join(' · ')}${l.sel&&Object.keys(l.sel).length?' · ':''}Qty ${l.q}</span><br><button data-r="${i}">Remove</button></div><span>${R(l.price*l.q)}</span></div>`}).join(''):'<p class="mut" style="padding:20px 0">Your cart is empty. Pick something from the collection.</p>';
  $('#st').textContent=R(cart.reduce((a,l)=>a+l.price*l.q,0))}
@@ -236,12 +236,12 @@ if(PG=='checkout'){
  function bankHtml(){const l=[['Account title',BK.title],['Bank',BK.bank],['Account number',BK.number],['IBAN',BK.iban]].filter(r=>r[1]);
   return l.length?`<dl class="bk">${l.map(r=>`<div><dt>${r[0]}</dt><dd>${h2(r[1])}</dd></div>`).join('')}</dl>${BK.note?`<p class="mut">${h2(BK.note)}</p>`:''}<p class="mut">After you transfer, send the receipt on WhatsApp ${WA} with your order number.</p>`:`<p class="mut">Our bank account details will be shown here.</p>`}
  function summary(){const r=rows(),c=$('#city')?$('#city').value:'',f=fee(c);
-  $('#sl3').innerHTML=r.map(({l,x})=>`<div class="si"><div class="sp">${med(x,0,'')}<b>${l.q}</b></div><div class="sn"><span>${h2(x.n)}${vname(l)?' – '+h2(vname(l)):''}</span>${l.q>1?`<small>Qty ${l.q} × ${R(l.price)}</small>`:''}</div><span class="sx">${R(l.price*l.q)}</span></div>`).join('');
+  $('#sl3').innerHTML=r.map(({l,x})=>`<div class="si"><div class="sp">${(()=>{try{return med(x,0,'')}catch(e){return''}})()}<b>${l.q}</b></div><div class="sn"><span>${h2(x.n)}${vname(l)?' – '+h2(vname(l)):''}</span>${l.q>1?`<small>Qty ${l.q} × ${R(l.price)}</small>`:''}</div><span class="sx">${R(l.price*l.q)}</span></div>`).join('');
   $('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':'– '+(c.trim().replace(/\b\w/g,m=>m.toUpperCase()));$('#s-tot').textContent=R(sub()+(f||0))}
  function showBank(){const b=document.querySelector('input[name=pay]:checked').value=='Bank transfer';$('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked))}
  function init(){
   if(!rows().length){$('#cg').style.display='none';$('#empty').style.display='block';return}
-  $('#cg').style.display='grid';$('#empty').style.display='none';$('#dnote').textContent='Delivery: Karachi '+R(DEL.karachi)+', outside Karachi '+R(DEL.other)+'.';summary();showBank();
+  $('#cg').style.display='grid';$('#empty').style.display='none';$('#dnote').textContent='Delivery: Karachi '+R(DEL.karachi)+', outside Karachi '+R(DEL.other)+'.';try{summary()}catch(e){console.error(e)}try{showBank()}catch(e){console.error(e)}
   $('#cf').addEventListener('input',e=>{if(e.target.id=='city')summary();if(e.target.id)err(e.target.id,'')});
   $('#cf').addEventListener('change',e=>{if(e.target.name=='pay')showBank()});
   $('#place').onclick=place;$('#place2').onclick=place}

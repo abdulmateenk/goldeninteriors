@@ -257,3 +257,7 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .main{cursor:default!important}.main img,.main:hover img{transform:none!important;transition:none!important}
 #home .head h2,#home .pc h3,#home .f1i h3,#home .f1i .f1p{color:#000!important}
 .cd .cs.ph svg{width:34%!important;height:auto!important}
+@media (max-width:860px){.rv{opacity:1;transform:none}}
+.pg-home{padding-top:0}.pg-home .top{position:relative}
+#home section{padding:44px 0}#home .head{margin-bottom:22px}#home #tiles{padding-top:20px}
+@media (max-width:860px){#home section{padding:28px 0}#home .head{margin-bottom:16px}}
