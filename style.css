@@ -253,3 +253,4 @@ body{padding-top:var(--hh)}
 .pg-product .pc h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:.005em;font-size:1.3rem}
 @media (max-width:480px){.pc h3{font-size:14px!important}.pg-product .pc h3{font-size:1.05rem!important}}
 footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:16px}
+#lt,#st{font-family:"Times New Roman",Times,serif!important;font-weight:700}
