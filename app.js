@@ -9,7 +9,7 @@ const TODAY=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMont
 function dOf(x,p){let best=null;DR.forEach(r=>{if(!r.active||(r.start&&TODAY<r.start)||(r.end&&TODAY>r.end))return;
  const hit=r.scope=='products'?(r.products||[]).includes(x.id):(r.categories||[]).includes(x.c);if(!hit)return;
  const np=r.type=='percent'?Math.round(p*(1-r.value/100)):Math.max(1,Math.round(p-r.value));if(np<p&&(!best||np<best.p))best={p:np,r:r,off:r.type=='percent'?Math.round(r.value)+'%':'Rs. '+Math.round(r.value).toLocaleString('en-US')}});return best}
-const card=(x,i=0)=>`<a class="pc" href="product.html?id=${x.id}" style="animation-delay:${i*50}ms"><div class="im">${x.tag?`<span class="tag">${dOf(x,x.p)?'−'+dOf(x,x.p).off:x.tag}</span>`:(dOf(x,x.p)?`<span class="tag">−${dOf(x,x.p).off}</span>`:'')}${med(x)}</div><h3 title="${x.n}" class="${x.n.length>34?'lg':''}">${x.n}</h3><p class="pr">${x.from?'From ':''}${dOf(x,x.p)?R(dOf(x,x.p).p)+`<s>${R(x.p)}</s>`:R(x.p)+(x.o?`<s>${R(x.o)}</s>`:'')}</p></a>`;
+const card=(x,i=0)=>`<a class="pc" href="product?id=${x.id}" style="animation-delay:${i*50}ms"><div class="im">${x.tag?`<span class="tag">${dOf(x,x.p)?'−'+dOf(x,x.p).off:x.tag}</span>`:(dOf(x,x.p)?`<span class="tag">−${dOf(x,x.p).off}</span>`:'')}${med(x)}</div><h3 title="${x.n}" class="${x.n.length>34?'lg':''}">${x.n}</h3><p class="pr">${x.from?'From ':''}${dOf(x,x.p)?R(dOf(x,x.p).p)+`<s>${R(x.p)}</s>`:R(x.p)+(x.o?`<s>${R(x.o)}</s>`:'')}</p></a>`;
 const cards=a=>a.map(card).join('');
 const MN=document.querySelector('main');const PG=MN.dataset.page;let KEY=MN.dataset.key||'';
 /* shared header, footer */
@@ -38,14 +38,14 @@ function setMeta(n,c){let m=document.querySelector('meta[name="'+n+'"]');if(!m){
   if(!q)h='<li class="sec" role="presentation">Popular</li>'+['vases','clocks','trays','candle'].map(k=>{const c=CATS.find(z=>z[0]==k);return`<li role="option"><a href="${c[2]}">${c[1]}</a></li>`}).join('');
   else{const cs=catMatches(q).slice(0,3),pr=searchP(q);
    if(cs.length)h+='<li class="sec" role="presentation">Collections</li>'+cs.map(c=>`<li role="option"><a href="${c[2]}">Browse all <b>${hl(c[1],q)}</b></a></li>`).join('');
-   if(pr.length)h+='<li class="sec" role="presentation">Products</li>'+pr.slice(0,6).map(x=>`<li role="option"><a href="product.html?id=${x.id}"><span class="th">${med(x,0,'')}</span><span class="tx2"><b>${hl(x.n,q)}</b><small>${h2(x.c)} · ${x.from?'From ':''}${R(dOf(x,x.p)?dOf(x,x.p).p:x.p)}</small></span></a></li>`).join('')+`<li role="option"><a class="all" href="search.html?q=${encodeURIComponent(q)}">See all ${pr.length} result${pr.length>1?'s':''} for “${h2(q)}”</a></li>`;
+   if(pr.length)h+='<li class="sec" role="presentation">Products</li>'+pr.slice(0,6).map(x=>`<li role="option"><a href="product?id=${x.id}"><span class="th">${med(x,0,'')}</span><span class="tx2"><b>${hl(x.n,q)}</b><small>${h2(x.c)} · ${x.from?'From ':''}${R(dOf(x,x.p)?dOf(x,x.p).p:x.p)}</small></span></a></li>`).join('')+`<li role="option"><a class="all" href="search?q=${encodeURIComponent(q)}">See all ${pr.length} result${pr.length>1?'s':''} for “${h2(q)}”</a></li>`;
    if(!cs.length&&!pr.length)h='<li class="none" role="presentation">No matches for “'+h2(q)+'”. Try “vase”, “tray” or “clock”.</li>'}
   sl.innerHTML=h;si.setAttribute('aria-expanded',h?'true':'false');opts().forEach((o,i)=>o.id='so'+i)}
  function mark(i){const o=opts();o.forEach(x=>x.classList.remove('on'));if(!o.length)return;act=(i+o.length)%o.length;o[act].classList.add('on');si.setAttribute('aria-activedescendant',o[act].id);o[act].scrollIntoView({block:'nearest'})}
  $('#sb').onclick=()=>{const o=sr.classList.toggle('o');if(o){si.focus();render()}};
  si.oninput=render;si.onfocus=render;
  si.onkeydown=e=>{if(e.key=='ArrowDown'){e.preventDefault();mark(act+1)}else if(e.key=='ArrowUp'){e.preventDefault();mark(act-1)}else if(e.key=='Enter'&&act>=0){e.preventDefault();location.href=opts()[act].querySelector('a').href}};
- $('#sf').onsubmit=e=>{e.preventDefault();const q=si.value.trim();if(q)location.href='search.html?q='+encodeURIComponent(q)};
+ $('#sf').onsubmit=e=>{e.preventDefault();const q=si.value.trim();if(q)location.href='search?q='+encodeURIComponent(q)};
  document.addEventListener('click',e=>{if(sr.classList.contains('o')&&!e.target.closest('#sr')&&!e.target.closest('#sb'))sr.classList.remove('o')})}
 /* edits made to the sample products from the admin Products page */
 try{const ov=JSON.parse(localStorage.getItem('gi-overrides')||'{}');P.slice().forEach(x=>{const o=ov[x.id];if(!o)return;
@@ -84,13 +84,13 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clea
 let cart=[];try{cart=JSON.parse(localStorage.getItem('gi-cart')||'[]').filter(l=>l.sku&&byId(l.id))}catch(e){}
 const save=()=>{try{localStorage.setItem('gi-cart',JSON.stringify(cart))}catch(e){}};
 function renderC(){const n=cart.reduce((a,b)=>a+b.q,0);$('#cn').textContent=n;
- $('#items').innerHTML=cart.length?cart.map((l,i)=>{const x=byId(l.id);return`<div class="it"><a class="t" href="product.html?id=${x.id}">${med(x,0,'')}</a><div><b>${x.n}</b><br><span class="mut">${Object.values(l.sel||{}).join(' · ')}${l.sel&&Object.keys(l.sel).length?' · ':''}Qty ${l.q}</span><br><button data-r="${i}">Remove</button></div><span>${R(l.price*l.q)}</span></div>`}).join(''):'<p class="mut" style="padding:20px 0">Your cart is empty. Pick something from the collection.</p>';
+ $('#items').innerHTML=cart.length?cart.map((l,i)=>{const x=byId(l.id);return`<div class="it"><a class="t" href="product?id=${x.id}">${med(x,0,'')}</a><div><b>${x.n}</b><br><span class="mut">${Object.values(l.sel||{}).join(' · ')}${l.sel&&Object.keys(l.sel).length?' · ':''}Qty ${l.q}</span><br><button data-r="${i}">Remove</button></div><span>${R(l.price*l.q)}</span></div>`}).join(''):'<p class="mut" style="padding:20px 0">Your cart is empty. Pick something from the collection.</p>';
  $('#st').textContent=R(cart.reduce((a,l)=>a+l.price*l.q,0))}
 $('#items').onclick=e=>{const r=e.target.dataset.r;if(r!=null){cart.splice(+r,1);save();renderC()}};
 $('#cb').onclick=()=>document.body.classList.add('co');
 $('#cx').onclick=$('#ov').onclick=()=>document.body.classList.remove('co');
 addEventListener('keydown',e=>{if(e.key=='Escape'){document.body.classList.remove('co');$('#sr').classList.remove('o')}});
-$('#co').onclick=()=>{if(!cart.length){toast('Your cart is empty');return}location.href='checkout.html'};
+$('#co').onclick=()=>{if(!cart.length){toast('Your cart is empty');return}location.href='checkout'};
 renderC();
 /* notification bar */
 {const m=$$('.am');let k=0;if(m.length>1)setInterval(()=>{m[k].classList.remove('on');k=(k+1)%m.length;m[k].classList.add('on')},4000)}
@@ -101,7 +101,7 @@ if(PG=='home'){
  $('#g-new').innerHTML=cards(onHome('new').slice(0,8));$('#g-clocks').innerHTML=cards(onHome('clocks').slice(0,8));
  [['featured','g-feat']].forEach(([k,g])=>{const l=onHome(k).slice(0,8);if(l.length){$('#'+g).innerHTML=cards(l)}else $('#'+g).closest('section').style.display='none'});
  const COLL=[['Vases','vases','s2'],['Decor & Ornaments','decor','deco'],['Wall Clocks','clocks','ck3'],['New Arrival','new','s1']];
- $('#ct').innerHTML=COLL.map(c=>`<a class="cd" href="${FILE[c[1]]}" aria-label="${c[0]}">${c[2]?`<img src="${IM[c[2]]}" alt="">`:`<div class="cs">${med(CK[2],0,"")}</div>`}<span>${c[0]}<i>Shop →</i></span></a>`).join('')+onHome('explore').map(x=>`<a class="cd" href="product.html?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('');
+ $('#ct').innerHTML=COLL.map(c=>`<a class="cd" href="${FILE[c[1]]}" aria-label="${c[0]}">${c[2]?`<img src="${IM[c[2]]}" alt="">`:`<div class="cs">${med(CK[2],0,"")}</div>`}<span>${c[0]}<i>Shop →</i></span></a>`).join('')+onHome('explore').map(x=>`<a class="cd" href="product?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('');
  let SL=null;try{SL=JSON.parse(localStorage.getItem('gi-slides')||'null')}catch(e){}
  if(!Array.isArray(SL))SL=SLD_DEF;SL=SL.map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z);SL=SL.filter(z=>z.active!==false);
  const sImg=v=>v&&v.startsWith('IM:')?IM[v.slice(3)]:(v||'');
@@ -131,7 +131,7 @@ if(PG=='home'){
    $('#f1cat').textContent=fx.c;$('#f1n').textContent=fx.n;
    const dd=dOf(fx,fx.p);$('#f1p').innerHTML=(fx.from?'From ':'')+(dd?R(dd.p)+`<s>${R(fx.p)}</s>`:R(fx.p)+(fx.o?`<s>${R(fx.o)}</s>`:''));
    $('#f1d').textContent=fx.d||'';
-   $('#f1a').href=$('#f1b').href='product.html?id='+fx.id+'#opts';
+   $('#f1a').href=$('#f1b').href='product?id='+fx.id+'#opts';
    $('#f1b').textContent='Buy it now'}}
  ['#g-new','#g-feat','#g-clocks'].forEach(s=>{const g=$(s);if(!g)return;const w=document.createElement('div');w.className='gw';g.parentNode.insertBefore(w,g);w.appendChild(g);
   const mk=(c,t,d)=>{const b=document.createElement('button');b.className='cb '+c+' gb';b.type='button';b.setAttribute('aria-label',d>0?'Next products':'Previous products');b.textContent=t;b.onclick=()=>{const c0=g.querySelector('.pc');if(!c0)return;const st=c0.offsetWidth+14;d>0&&g.scrollLeft+g.clientWidth>=g.scrollWidth-4?g.scrollTo({left:0,behavior:'smooth'}):g.scrollBy({left:d*st,behavior:'smooth'})};w.appendChild(b)};mk('p','‹',-1);mk('n','›',1)});
@@ -139,13 +139,13 @@ if(PG=='home'){
 }
 /* CATEGORY PAGE */
 if(PG=='list'){const L=LIST[KEY];$('#lt').textContent=L[0];$('#ls').textContent=L[1];const a=L[2]();
- $('#g-lst').innerHTML=a.length?cards(a):'<div class="empty"><h2>New pieces are on their way</h2><p class="mut">We are adding products to this collection. Browse our other collections in the meantime.</p><a class="btn" href="new-arrival.html" style="display:inline-block;margin-top:18px">Shop New Arrival</a></div>';
+ $('#g-lst').innerHTML=a.length?cards(a):'<div class="empty"><h2>New pieces are on their way</h2><p class="mut">We are adding products to this collection. Browse our other collections in the meantime.</p><a class="btn" href="new-arrival" style="display:inline-block;margin-top:18px">Shop New Arrival</a></div>';
  $('#chips').innerHTML=CATS.filter(c=>c[0]!='home').map(c=>`<a href="${c[2]}" ${c[0]==KEY?'class="on"':''}>${c[1]}</a>`).join('');
  $('#cr').textContent=L[0]}
 /* PRODUCT PAGE */
 if(PG=='product'){(async()=>{
  const id=new URLSearchParams(location.search).get('id')||location.hash.replace('#','');const x=await GI.getProduct(id);
- if(!x){$('#pbox').innerHTML='<div class="lh"><h1>Product not found</h1><p class="mut" style="margin-top:10px"><a href="index.html" style="color:var(--gold)">Back to home</a></p></div>';return}
+ if(!x){$('#pbox').innerHTML='<div class="lh"><h1>Product not found</h1><p class="mut" style="margin-top:10px"><a href="/" style="color:var(--gold)">Back to home</a></p></div>';return}
  KEY=SLUG[x.category]||'new';nav(KEY);document.title=x.name+' | '+x.category+' | Golden Interiors';
  const SZ=['One size','Small','Medium','Large'],V=Array.isArray(x.variants)?x.variants:[],VM=V.length>0;
  let ix=0,qty=1,views=x.images;const sel={};
@@ -204,7 +204,7 @@ if(PG=='product'){(async()=>{
  async function add(){if(startsFrom()){toast('Please select a size first');sizeMsg();$('#opts').scrollIntoView({block:'center',behavior:'smooth'});return false}
   const line={sku:sku(),id:x.id,name:x.name,sel:Object.assign({},sel),price:price(),q:qty};const f=cart.find(l=>l.sku==line.sku);f?f.q=Math.min(99,f.q+qty):cart.push(line);save();renderC();await GI.addToCart(line);const b=$('#cn');b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),300);return true}
  $('#add').onclick=async()=>{if(await add())document.body.classList.add('co')};
- $('#buy').onclick=async()=>{if(await add())location.href='checkout.html'};
+ $('#buy').onclick=async()=>{if(await add())location.href='checkout'};
  const wl=()=>{try{return JSON.parse(localStorage.getItem('gi-wish')||'[]')}catch(e){return[]}};
  const hr=$('#hrt');hr.setAttribute('aria-pressed',wl().includes(x.id));
  hr.onclick=()=>{let l=wl();const on=!l.includes(x.id);l=on?l.concat(x.id):l.filter(k=>k!=x.id);try{localStorage.setItem('gi-wish',JSON.stringify(l))}catch(e){}hr.setAttribute('aria-pressed',on);GI.wishlist(x.id,on);toast(on?'Saved to your wishlist':'Removed from your wishlist')};
@@ -212,7 +212,7 @@ if(PG=='product'){(async()=>{
  $('#morecat').innerHTML=CATS.filter(c=>c[0]!='home'&&c[0]!=KEY).map(c=>({c,p:P.find(y=>y.c==c[1])||P.find(y=>(SLUG[y.c]||'')==c[0])})).sort((a,b)=>!!b.p-!!a.p).slice(0,4).map((r,i)=>`<a href="${r.c[2]}" aria-label="${h2(r.c[1])}">${r.p?med(r.p,0,''):`<img src="${IM[['s1','s2','s3','deco'][i%4]]}" alt="">`}<span>${h2(r.c[1])}</span></a>`).join('');
  /* SEO: description and product structured data */
  setMeta('description',(x.name+'. '+(x.description||'')).slice(0,155));
- {const u='https://goldeninteriors.pk/product.html?id='+encodeURIComponent(x.id);let cl=document.querySelector('link[rel=canonical]');if(!cl){cl=document.createElement('link');cl.rel='canonical';document.head.appendChild(cl)}cl.href=u;
+ {const u='https://goldeninteriors.pk/product?id='+encodeURIComponent(x.id);let cl=document.querySelector('link[rel=canonical]');if(!cl){cl=document.createElement('link');cl.rel='canonical';document.head.appendChild(cl)}cl.href=u;
   [['og:title',document.title],['og:description',(x.description||'').slice(0,155)],['og:url',u]].forEach(([p,v])=>{let m=document.querySelector('meta[property="'+p+'"]');if(m)m.content=v});}
  const lowP=lowV?lowV.price:x.price,highP=lowV?Math.max(...V.map(v=>v.price)):x.price,inStock=(VM?V.reduce((a,w)=>a+w.stock,0):(x.stock==null?1:x.stock))>0;
  const ld={'@context':'https://schema.org','@type':'Product',name:x.name,description:x.description,sku:VM?V[0].sku:x.id,category:x.category,brand:{'@type':'Brand',name:'Golden Interiors'},
@@ -272,7 +272,7 @@ if(PG=='checkout'){
   <div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div><div class="tl big"><span>Sub-Total</span><span>${R(tot)}</span></div>
   <p class="mut" style="margin-top:12px">Payment: <b>${pay}</b><br>Delivering to: ${h2(order.address)}, ${h2(order.city)}</p>
   ${pay=='Bank transfer'?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(tot)} to</h4>${bankHtml()}</div>`:''}</div>
-  <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="index.html" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
+  <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="/" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
   mailP.then(j=>{const n=$('#mailnote');if(n&&j&&j.customerEmailed)n.textContent='We have also emailed your order confirmation to '+order.email+'.'})}
  init()}
 /* SEARCH RESULTS PAGE */
@@ -296,7 +296,7 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
 /* footer quick links + their pages */
 (function(){const L=()=>{try{const l=JSON.parse(localStorage.getItem('gi-links')||'null');return Array.isArray(l)?l:LINKS_DEF}catch(e){return LINKS_DEF}};
  const e2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- const ql=document.getElementById('ql');if(ql)ql.innerHTML=L().filter(z=>z.active!==false).map(z=>`<li><a href="policies.html?id=${encodeURIComponent(z.id)}">${e2(z.title)}</a></li>`).join('');
+ const ql=document.getElementById('ql');if(ql)ql.innerHTML=L().filter(z=>z.active!==false).map(z=>`<li><a href="policies?id=${encodeURIComponent(z.id)}">${e2(z.title)}</a></li>`).join('');
  const pb=document.getElementById('plb');if(pb){const id=new URLSearchParams(location.search).get('id'),z=L().find(x=>x.id==id)||L().filter(x=>x.active!==false)[0];
   if(!z){document.getElementById('plt').textContent='Page not found';document.getElementById('plc').textContent='Not found'}
   else{document.title=z.title+' | Golden Interiors';document.getElementById('plt').textContent=z.title;document.getElementById('plc').textContent=z.title;

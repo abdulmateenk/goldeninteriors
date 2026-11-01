@@ -1,11 +1,20 @@
 {
  "headers": [
   {
-   "source": "/(.*)\\.(css|js|png|jpg|webp|ico)",
+   "source": "/(.*)\\.(png|jpg|jpeg|webp|ico)",
    "headers": [
     {
      "key": "Cache-Control",
-     "value": "public, max-age=86400, stale-while-revalidate=604800"
+     "value": "public, max-age=604800"
+    }
+   ]
+  },
+  {
+   "source": "/(.*)\\.(css|js)",
+   "headers": [
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=0, must-revalidate"
     }
    ]
   },
@@ -21,6 +30,15 @@
      "value": "strict-origin-when-cross-origin"
     }
    ]
+  }
+ ],
+ "cleanUrls": true,
+ "trailingSlash": false,
+ "redirects": [
+  {
+   "source": "/new-arrivals",
+   "destination": "/new-arrival",
+   "permanent": true
   }
  ]
 }
