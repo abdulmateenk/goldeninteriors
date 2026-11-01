@@ -148,3 +148,8 @@ In the demo the order is saved in the browser and appears in Admin > Orders; sto
 **Orders and settings are still per browser.** Order numbers, Settings (delivery charges and bank details), products, discounts, slider and quick links all live in each browser's `localStorage`, so they are not shared between visitors. A database behind the `GI` hooks fixes this.
 
 **Header.** The header is fixed to the top on all pages except the product page, where it scrolls away (`body.pg-product`).
+
+## SEO and images (latest)
+- `sitemap.xml`, `robots.txt`, `og-image.jpg` and `vercel.json` (cache + security headers) are in the repo root. Canonical URLs use https://goldeninteriors.pk.
+- Search and checkout pages are `noindex`; admin pages are blocked in robots.txt.
+- Images are WebP. Photos added in Admin are resized to 1200 px and converted to WebP automatically.

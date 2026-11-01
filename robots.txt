@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /login.html
+Disallow: /dashboard.html
+Disallow: /products.html
+Disallow: /add-product.html
+Disallow: /orders.html
+Disallow: /discount.html
+Disallow: /invoices.html
+Disallow: /finance.html
+Disallow: /settings.html
+Disallow: /slider.html
+Disallow: /quick-links.html
+Disallow: /checkout.html
+Disallow: /search.html
+Disallow: /api/
+
+Sitemap: https://goldeninteriors.pk/sitemap.xml
