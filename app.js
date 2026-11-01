@@ -227,7 +227,7 @@ if(PG=='product'){(async()=>{
 /* header height for sticky blocks */
 {const T=document.querySelector('.top');const hh=()=>{if(!T)return;const m=T.querySelector('.cats.show');document.documentElement.style.setProperty('--hh',(T.offsetHeight-(m?m.offsetHeight:0))+'px')};hh();addEventListener('resize',hh);addEventListener('load',hh);try{document.fonts.ready.then(hh)}catch(e){}try{new ResizeObserver(hh).observe(T)}catch(e){}}
 /* CHECKOUT PAGE */
-if(PG=='checkout'){
+if(PG=='checkout')(function(){
  const ST=(()=>{try{return JSON.parse(localStorage.getItem('gi-settings')||'{}')}catch(e){return{}}})();
  const DEL=Object.assign({karachi:400,other:600},ST.delivery||{}),BK=Object.assign({title:'',bank:'',number:'',iban:'',note:''},ST.bank||{});
  const WA='03312523286';
@@ -291,7 +291,7 @@ if(PG=='checkout'){
   ${pay=='Bank transfer'?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(tot)} to</h4>${bankHtml()}</div>`:''}</div>
   <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="/" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
   mailP.then(j=>{const n=$('#mailnote');if(n&&j&&j.customerEmailed)n.textContent='We have also emailed your order confirmation to '+order.email+'.'})}
- init()}
+ init()})();
 /* SEARCH RESULTS PAGE */
 if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').trim();$('#si').value=q;const r=q?searchP(q):[];
  const t=q?`Search results for “${q}”`:'All products';$('#st').textContent=t;document.title=`${q?'Search: '+q:'Search'} | Golden Interiors`;
