@@ -254,3 +254,4 @@ body{padding-top:var(--hh)}
 @media (max-width:480px){.pc h3{font-size:14px!important}.pg-product .pc h3{font-size:1.05rem!important}}
 footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:16px}
 #lt,#st{font-family:"Times New Roman",Times,serif!important;font-weight:700}
+.main{cursor:default!important}.main img,.main:hover img{transform:none!important;transition:none!important}

@@ -198,7 +198,6 @@ if(PG=='product'){(async()=>{
   if(v.color&&x.recolor)views=x.recolor(v.color);if(nn(v.image))ix=Math.min(+v.image,views.length-1);draw()};
  $('#thumbs').onclick=e=>{const b=e.target.closest('button');if(b){ix=+b.dataset.i;draw()}};
  const step=d=>{ix=(ix+d+views.length)%views.length;draw()};$('#gp').onclick=()=>step(-1);$('#gn').onclick=()=>step(1);
- const mn=$('#main');mn.addEventListener('mousemove',e=>{const im=mn.querySelector('img');if(!im)return;const r=mn.getBoundingClientRect();im.style.transformOrigin=((e.clientX-r.left)/r.width*100)+'% '+((e.clientY-r.top)/r.height*100)+'%'});
  const q=$('#q');const setQ=n=>{qty=Math.max(1,Math.min(maxQ(),n||1));q.value=qty};
  $('#m1').onclick=()=>setQ(qty-1);$('#p1').onclick=()=>setQ(qty+1);q.onchange=()=>setQ(parseInt(q.value));
  const sizeMsg=()=>{let e=$('#serr');if(!e){e=document.createElement('p');e.id='serr';e.className='serr';e.setAttribute('role','alert');$('.cta2').before(e)}e.textContent='Please choose a size above, then press the button again.';$('#opts').classList.add('shake');setTimeout(()=>$('#opts').classList.remove('shake'),600)};
