@@ -64,6 +64,10 @@ async function rateLimited(req) {
 
 module.exports = async (req, res) => {
   try {
+    if (req.method === 'GET' && /(^|[?&])health=1/.test(req.url || '')) {
+      const names = Object.keys(process.env).filter(n => /REST|KV_|UPSTASH|REDIS|ADMIN_KEY/.test(n)).sort();
+      return send(res, 200, { storage: configured(), adminKey: (process.env.ADMIN_KEY || '').length >= 8, vercelEnv: process.env.VERCEL_ENV || '', host: req.headers.host || '', variableNamesSeen: names });
+    }
     if (!configured()) return send(res, 503, { error: 'storage_not_configured' });
 
     if (req.method === 'POST') {
