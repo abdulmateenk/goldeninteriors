@@ -182,3 +182,74 @@ footer a{transition:color .25s}footer li a:hover{color:var(--lg)}footer .wp{colo
 .pc h3{font-size:1.5rem;line-height:1.15}#pn{font-size:clamp(2.3rem,4.2vw,3.4rem);font-weight:600;line-height:1.05}.it b{font-size:1.1rem}
 @media (max-width:480px){.ann .am{font-size:12px;letter-spacing:.02em}.pc h3{font-size:1.3rem}}
 @media (max-width:860px){.cats:not(.show){display:none}.cats ul{flex-direction:column;gap:0;overflow:visible}.cats a{padding:14px 0;border-top:1px solid #1d1a12}.cats a::after{display:none}.logo img{height:46px}.ib{width:38px}}
+
+/* ===== v10 ===== */
+html,body{overflow-x:clip}
+.top{position:-webkit-sticky;position:sticky;top:0}
+.ann{background:#F6CC66;color:#000;border-bottom:0;font-weight:500}.ann .am{color:#000}
+.hd{height:108px}.logo img{height:90px}
+.head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;border-bottom:0;padding-bottom:0;margin-bottom:34px}.head h2{grid-column:2}
+.head h2::after{display:none}
+.head .va{grid-column:3;justify-self:end}
+.pc .im{aspect-ratio:5/4}
+.cd{aspect-ratio:1/1}
+.pg{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:56px}
+.gal{max-width:380px;width:100%}
+.main{aspect-ratio:1/1}
+.pc h3{font-size:1.3rem}
+.serr{color:#9a2b1f;font-size:14px;margin:14px 0 0}
+.shake{animation:shk .5s}@keyframes shk{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.cat2{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding-bottom:90px}
+.cat2 a{position:relative;aspect-ratio:1/1;overflow:hidden;background:var(--surf);display:grid;place-items:center;text-decoration:none}
+.cat2 a img,.cat2 a svg{width:100%;height:100%;object-fit:cover;transition:transform .8s}.cat2 a:hover img{transform:scale(1.06)}
+.cat2 span,.tile span{position:absolute;left:0;right:0;bottom:0;padding:34px 14px 14px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font:500 15px "Hanken Grotesk",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+/* featured product */
+.f1g{display:grid;grid-template-columns:auto minmax(0,420px) minmax(0,1fr);gap:26px;align-items:center;justify-content:center;max-width:980px;margin:0 auto}
+.f1c{display:flex;flex-direction:column;gap:12px}
+.f1c button{width:58px;height:58px;padding:0;border:1px solid var(--line);background:var(--surf);cursor:pointer;overflow:hidden;display:grid;place-items:center}.f1c button[aria-pressed=true]{border-color:var(--gold);outline:1px solid var(--gold)}
+.f1c button img,.f1c button svg{width:100%;height:100%;object-fit:cover}
+.f1m{aspect-ratio:1/1;background:var(--surf);overflow:hidden;display:grid;place-items:center}.f1m img,.f1m svg{width:100%;height:100%;object-fit:cover}
+.f1i{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.f1i h3{font:600 clamp(1.8rem,3vw,2.6rem)/1.1 "Cormorant Garamond",serif;margin:0}
+.f1p{font-size:1.4rem;font-weight:500}.f1p s{color:var(--mut);font-size:1rem;margin-left:10px}
+.f1i .btn{display:inline-block;text-decoration:none;text-align:center;min-width:190px}
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.tile{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--surf);display:grid;place-items:center;text-decoration:none}
+.tile img,.tile svg{width:100%;height:100%;object-fit:cover;transition:transform .8s}.tile:hover img{transform:scale(1.05)}
+.tile span{font:700 clamp(2.1rem,4.2vw,3.4rem)/1.05 "Cormorant Garamond",serif;text-transform:none;letter-spacing:.01em;padding:60px 24px 24px}.tile span i{display:block;font:500 14px "Hanken Grotesk",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--lg);margin-top:4px}
+.ab .wrap{max-width:760px;text-align:center}.ab p{color:var(--mut)}
+.pl{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}.pl a{border:1px solid var(--line);padding:16px 10px;text-align:center;text-decoration:none;color:var(--ink);font-size:14px;letter-spacing:.06em;text-transform:uppercase;transition:all .25s}.pl a:hover{background:#000;color:var(--lg);border-color:#000}
+.pol{max-width:780px;padding-bottom:90px}.pol h2{font-family:"Cormorant Garamond",serif;font-size:2rem;margin:42px 0 10px;scroll-margin-top:calc(var(--hh,170px) + 16px)}.pol p,.pol li{color:#3c3c39}.pol ul{padding-left:20px}
+footer .fl{list-style:none;padding:0;margin:14px 0 0}
+#nl{display:flex;gap:8px;margin-top:10px;max-width:380px}#nl input{flex:1;min-width:0;padding:12px 14px;border:1px solid #3a3526;background:#0d0d0c;color:#fff;font:14px "Poppins",sans-serif}#nl button{padding:0 20px;border:0;background:var(--lg);color:#000;font:500 13px "Montserrat",sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+#nlm{font-size:13px;margin-top:8px;min-height:1.2em}
+@media (max-width:980px){.cat2{grid-template-columns:repeat(2,1fr)}.f1g{grid-template-columns:auto minmax(0,1fr)}.f1i{grid-column:1/-1}}
+@media (max-width:860px){.hd{height:80px}.logo img{height:66px}.pg{grid-template-columns:1fr;gap:28px}.gal{max-width:100%}.main{aspect-ratio:1/1;max-height:300px;margin:0 auto}.tg{grid-template-columns:1fr}.pl{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.logo img{height:54px}.hd{height:70px}.f1g{grid-template-columns:1fr}.f1c{flex-direction:row;order:2}.f1c button{width:48px;height:48px}.f1m{order:1}.f1i{order:3}}
+@media (max-width:360px){.logo img{height:46px!important}}
+.pc h3{height:1.4rem!important;line-height:1.4rem!important;margin:10px 0 0!important}.pc .pr{margin-top:0!important;line-height:1.4}
+@media (max-width:860px){#home .grid{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-right:-16px;padding-right:16px}#home .grid::-webkit-scrollbar{display:none}#home .grid>.pc{flex:0 0 58%;min-width:0;scroll-snap-align:start}}
+.gw{position:relative}.gb{display:none!important}
+@media (max-width:860px){.gb{display:grid!important;place-items:center;top:calc((100vw - 32px)*.232);transform:translateY(-50%);}.gb.p{left:4px}.gb.n{right:4px}}
+
+@media (max-width:860px){.cb{width:36px!important;height:36px!important;font-size:24px!important;line-height:1;padding:0 0 3px!important;display:grid;place-items:center}}
+.head h2{font-family:"Times New Roman",Times,serif;font-weight:700}
+
+
+.cd span i{white-space:nowrap;margin-left:10px}
+
+footer .fg{grid-template-columns:1.6fr 1fr}@media (max-width:860px){footer .fg{grid-template-columns:1fr 1fr}}@media (max-width:480px){footer .fg{grid-template-columns:1fr}}
+.ck1,.cbx h2,.cbx h3,.csum h2,#done h2{font-family:"Times New Roman",Times,serif;font-weight:700}
+.cbx h2 small{font-family:"Hanken Grotesk",system-ui,sans-serif;font-weight:400}
+/* header stays at the top while scrolling (fixed, with matching space above the page) */
+:root{--hh:191px}
+.top{position:fixed;top:0;left:0;right:0;width:100%}
+body{padding-top:var(--hh)}
+@media (max-width:860px){:root{--hh:114px}}@media (max-width:480px){:root{--hh:104px}}
+@media (max-width:860px){.top .cats.show{max-height:calc(100vh - var(--hh));max-height:calc(100dvh - var(--hh));overflow-y:auto}}
+.pg-product{padding-top:0}.pg-product .top{position:relative}
+@media (max-width:480px){.pc h3{font-size:1.05rem!important}}
+/* product card titles in Poppins (landing + category + search pages; product page keeps its own look) */
+.pc h3{font-family:"Poppins","Hanken Grotesk",system-ui,sans-serif;font-weight:500;letter-spacing:0;font-size:16px}
+.pg-product .pc h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:.005em;font-size:1.3rem}
+@media (max-width:480px){.pc h3{font-size:14px!important}.pg-product .pc h3{font-size:1.05rem!important}}
+footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:16px}

@@ -59,3 +59,8 @@ const EX={
 P.forEach(x=>{const e=EX[x.id]||{};if(e.im)x.im=e.im;x.dim=e.dim||CKDIM[x.id]||[];x.mat=e.mat||(x.c=='Wall Clocks'?'Metal or wood frame with a glass-covered face and silent quartz movement.':'');x.care=e.care||(GROUP[x.c]?'':(CARE[x.c]||''))});
 /* where each product appears on the landing page */
 P.forEach(x=>{x.show=(NA.includes(x)?['new']:[]).concat(CK.includes(x)?['clocks']:[],x.o?['sale']:[])});
+
+/* footer quick links (managed in Admin > Quick Links, saved in localStorage key gi-links) */
+const LINKS_DEF=[
+{id:'shipping',title:'Shipping Policies',active:true,content:'Orders are processed and delivered within 3 to 5 days. Delivery within Karachi is Rs. 400 and delivery outside Karachi is Rs. 600. We confirm every order by phone before it is dispatched, so please give a phone number that is reachable.\n\nYou can pay by cash on delivery, or by bank transfer to our account and send us the receipt on WhatsApp with your order number.'},
+{id:'terms',title:'Terms and Conditions',active:true,content:'By placing an order you confirm that the details you give are correct. Prices are in Pakistani rupees and may change without notice. Colours can look slightly different on different screens. We may cancel an order if an item is out of stock, and we will tell you if that happens.'}];

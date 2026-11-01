@@ -134,3 +134,17 @@ The page builds this order object and passes it to `GI.placeOrder(order)`, which
 ```
 
 In the demo the order is saved in the browser and appears in Admin > Orders; stock of products added in the admin is reduced by the ordered quantities. In production the server must recalculate prices, discounts and delivery from its own data and generate the order number, never trust the browser's totals, and reduce stock.
+
+## Added in the latest round
+
+**Order tracking IDs.** Admin > Orders has a "Tracking ID" box per order. It is stored as `order.tracking` (string). When you move orders to a server, add a `tracking` field to the order record and let `PATCH /orders/:id` update it.
+
+**Quick Links (footer).** Admin > Quick Links manages the footer links and the page each one opens (`policies.html?id=<id>`). Stored in `localStorage['gi-links']` as `[{id, title, content, active}]`; the defaults are `LINKS_DEF` in `catalog.js`. Server version: `GET /links` for the storefront, `POST/PUT/DELETE /links` for the admin.
+
+**Newsletter.** The footer sign-up was removed; the old handler is harmless.
+
+**Order confirmation email (not enabled).** `GI.emailOrder(order)` in `app.js` posts the order to `/api/order` when `GI.EMAIL_ON` is `true`. A ready-made Vercel function is not included in this repo yet; it needs a Gmail app password in the Vercel environment variables.
+
+**Orders and settings are still per browser.** Order numbers, Settings (delivery charges and bank details), products, discounts, slider and quick links all live in each browser's `localStorage`, so they are not shared between visitors. A database behind the `GI` hooks fixes this.
+
+**Header.** The header is fixed to the top on all pages except the product page, where it scrolls away (`body.pg-product`).

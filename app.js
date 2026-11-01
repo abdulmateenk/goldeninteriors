@@ -72,9 +72,10 @@ function localProduct(id){const x=P.find(p=>p.id==id);if(!x)return null;
 /* ---- BACKEND HOOKS ----
    Set API_BASE to your server (e.g. 'https://api.goldeninteriors.pk/v1') and these calls go to it.
    Left empty, the site uses the sample products above. See backend-integration.md for the JSON shapes. */
-const GI={API_BASE:'',
+const GI={API_BASE:'',EMAIL_ON:false /* set to true after the /api/order email function is deployed */,
  async getProduct(id){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/products/'+encodeURIComponent(id));if(r.ok)return await r.json()}catch(e){}}return localProduct(id)},
  async addToCart(line){if(GI.API_BASE){try{await fetch(GI.API_BASE+'/cart/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(line)})}catch(e){}}},
+ emailOrder(o){if(!GI.EMAIL_ON||!/^https?:$/.test(location.protocol))return Promise.resolve(null);const c=new AbortController();setTimeout(()=>c.abort(),20000);return fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o),signal:c.signal}).then(r=>r.ok?r.json():null).catch(()=>null)},
  async placeOrder(o){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});if(r.ok)return await r.json()}catch(e){}}return null},
  async checkout(lines){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:lines})});const j=await r.json();if(j&&j.url){location.href=j.url;return true}}catch(e){}}return false},
  async wishlist(id,on){if(GI.API_BASE){try{await fetch(GI.API_BASE+'/wishlist/'+encodeURIComponent(id),{method:on?'POST':'DELETE'})}catch(e){}}}};
@@ -98,7 +99,7 @@ if(PG=='home'){
  
  const onHome=k=>{const ok=x=>x.show.includes(k)||(k=='sale'&&dOf(x,x.p));return P.filter(x=>x.custom&&ok(x)).reverse().concat(P.filter(x=>!x.custom&&ok(x)))};
  $('#g-new').innerHTML=cards(onHome('new').slice(0,8));$('#g-clocks').innerHTML=cards(onHome('clocks').slice(0,8));
- [['featured','g-feat'],['sale','g-sale']].forEach(([k,g])=>{const l=onHome(k).slice(0,8);if(l.length){$('#'+g).innerHTML=cards(l)}else $('#'+g).closest('section').style.display='none'});
+ [['featured','g-feat']].forEach(([k,g])=>{const l=onHome(k).slice(0,8);if(l.length){$('#'+g).innerHTML=cards(l)}else $('#'+g).closest('section').style.display='none'});
  const COLL=[['Vases','vases','s2'],['Decor & Ornaments','decor','deco'],['Wall Clocks','clocks','ck3'],['New Arrival','new','s1']];
  $('#ct').innerHTML=COLL.map(c=>`<a class="cd" href="${FILE[c[1]]}" aria-label="${c[0]}">${c[2]?`<img src="${IM[c[2]]}" alt="">`:`<div class="cs">${med(CK[2],0,"")}</div>`}<span>${c[0]}<i>Shop →</i></span></a>`).join('')+onHome('explore').map(x=>`<a class="cd" href="product.html?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('');
  let SL=null;try{SL=JSON.parse(localStorage.getItem('gi-slides')||'null')}catch(e){}
@@ -109,12 +110,9 @@ if(PG=='home'){
   const rt=z.layout=='clocks'?`<div class="rt">${CK[0].svg+CK[2].svg+CK[3].svg}</div>`:(im?`<div class="rt" style="background-image:url('${im}');${z.image=='IM:ck3o'?'background-position:50% 20%':''}"></div>`:'');
   return`<div class="sd ${z.layout=='clocks'?'s3':'s2'}">${rt}<div class="tx"><small>Golden Interiors</small><h2>${t}</h2>${z.subtitle?`<p>${h2(z.subtitle)}</p>`:''}${z.button&&lk?`<a class="sb" href="${lk}" style="background:var(--gold)">${h2(z.button)}</a>`:''}</div></div>`}).join('');
  const tr=$('#tr'),N=Math.max(SL.length,1);let si=0,st;
- if(!SL.length)$('#sl').style.display='none';if(SL.length<2)['#sp','#sn','#sdots'].forEach(k=>$(k).style.display='none');
- $('#sdots').innerHTML=[...Array(N)].map((_,i)=>`<button aria-label="Slide ${i+1}" data-i="${i}"></button>`).join('');
- function slide(i){si=(i+N)%N;tr.style.transform=`translateX(-${si*100}%)`;$$('#sdots button').forEach((b,k)=>b.setAttribute('aria-current',k==si))}
+ if(!SL.length)$('#sl').style.display='none';
+ function slide(i){si=(i+N)%N;tr.style.transform=`translateX(-${si*100}%)`}
  function auto(){clearInterval(st);st=setInterval(()=>slide(si+1),5500)}
- $('#sp').onclick=()=>{slide(si-1);auto()};$('#sn').onclick=()=>{slide(si+1);auto()};
- $('#sdots').onclick=e=>{const b=e.target.closest('button');if(b){slide(+b.dataset.i);auto()}};
  let tx=null;$('#sl').addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
  $('#sl').addEventListener('touchend',e=>{if(tx==null)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>40){slide(si+(d<0?1:-1));auto()}tx=null});
  $('#sl').onmouseenter=()=>clearInterval(st);$('#sl').onmouseleave=auto;slide(0);auto();
@@ -122,6 +120,22 @@ if(PG=='home'){
  $('#cp').onclick=()=>ct.scrollBy({left:-step(),behavior:'smooth'});
  $('#cx2').onclick=()=>{ct.scrollLeft+ct.clientWidth>=ct.scrollWidth-4?ct.scrollTo({left:0,behavior:'smooth'}):ct.scrollBy({left:step(),behavior:'smooth'})};
  setInterval(()=>{if(!ct.matches(':hover'))$('#cx2').click()},4500);
+ /* featured product + two category tiles */
+ {const fx=onHome('featured')[0]||P.find(x=>x.c=='Vases')||P[0];
+  if(fx){$('#feat1').style.display='';
+   const ph=fx.photo?[fx.photo,fx.photo2,fx.photo3].filter(Boolean):null,n=ph?ph.length:(fx.im?fx.im.length:(fx.imgs?fx.imgs.length:1));
+   const view=i=>ph?`<img src="${ph[i]}" alt="${h2(fx.n)}">`:med(fx,i,fx.n);
+   $('#f1c').innerHTML=n>1?[...Array(Math.min(n,4))].map((_,i)=>`<button aria-label="Photo ${i+1}" aria-pressed="${i==0}" data-i="${i}">${view(i)}</button>`).join(''):'';
+   $('#f1m').innerHTML=view(0);
+   $('#f1c').onclick=e=>{const b=e.target.closest('button');if(!b)return;$('#f1m').innerHTML=view(+b.dataset.i);$$('#f1c button').forEach(k=>k.setAttribute('aria-pressed',k==b))};
+   $('#f1cat').textContent=fx.c;$('#f1n').textContent=fx.n;
+   const dd=dOf(fx,fx.p);$('#f1p').innerHTML=(fx.from?'From ':'')+(dd?R(dd.p)+`<s>${R(fx.p)}</s>`:R(fx.p)+(fx.o?`<s>${R(fx.o)}</s>`:''));
+   $('#f1d').textContent=fx.d||'';
+   $('#f1a').href=$('#f1b').href='product.html?id='+fx.id+'#opts';
+   $('#f1b').textContent='Buy it now'}}
+ ['#g-new','#g-feat','#g-clocks'].forEach(s=>{const g=$(s);if(!g)return;const w=document.createElement('div');w.className='gw';g.parentNode.insertBefore(w,g);w.appendChild(g);
+  const mk=(c,t,d)=>{const b=document.createElement('button');b.className='cb '+c+' gb';b.type='button';b.setAttribute('aria-label',d>0?'Next products':'Previous products');b.textContent=t;b.onclick=()=>{const c0=g.querySelector('.pc');if(!c0)return;const st=c0.offsetWidth+14;d>0&&g.scrollLeft+g.clientWidth>=g.scrollWidth-4?g.scrollTo({left:0,behavior:'smooth'}):g.scrollBy({left:d*st,behavior:'smooth'})};w.appendChild(b)};mk('p','‹',-1);mk('n','›',1)});
+ [['#t-v','Vases','Elegant Vases & more'],['#t-f','Figurines','Statement Pieces']].forEach(([s,c,t])=>{const p=P.find(x=>x.c==c);$(s).innerHTML=(p?med(p,0,''):`<img src="${IM.deco}" alt="">`)+`<span>${t}<i>Shop ${c} →</i></span>`});
 }
 /* CATEGORY PAGE */
 if(PG=='list'){const L=LIST[KEY];$('#lt').textContent=L[0];$('#ls').textContent=L[1];const a=L[2]();
@@ -179,7 +193,7 @@ if(PG=='product'){(async()=>{
   $('#add').disabled=$('#buy').disabled=n<=0;if(qty>maxQ())qty=maxQ();$('#q').value=qty;$('#q').max=maxQ();
   drawOpts()}
  draw();
- $('#opts').onclick=e=>{const b=e.target.closest('button');if(!b)return;const o=OPTS[+b.dataset.o],v=o.values[+b.dataset.v];sel[o.name]=v.label;
+ $('#opts').onclick=e=>{const b=e.target.closest('button');if(!b)return;{const er=$('#serr');if(er)er.remove()}const o=OPTS[+b.dataset.o],v=o.values[+b.dataset.v];sel[o.name]=v.label;
   if(VM&&o.name=='Size')fixSel();
   if(v.color&&x.recolor)views=x.recolor(v.color);if(nn(v.image))ix=Math.min(+v.image,views.length-1);draw()};
  $('#thumbs').onclick=e=>{const b=e.target.closest('button');if(b){ix=+b.dataset.i;draw()}};
@@ -187,14 +201,16 @@ if(PG=='product'){(async()=>{
  const mn=$('#main');mn.addEventListener('mousemove',e=>{const im=mn.querySelector('img');if(!im)return;const r=mn.getBoundingClientRect();im.style.transformOrigin=((e.clientX-r.left)/r.width*100)+'% '+((e.clientY-r.top)/r.height*100)+'%'});
  const q=$('#q');const setQ=n=>{qty=Math.max(1,Math.min(maxQ(),n||1));q.value=qty};
  $('#m1').onclick=()=>setQ(qty-1);$('#p1').onclick=()=>setQ(qty+1);q.onchange=()=>setQ(parseInt(q.value));
- async function add(){if(startsFrom()){toast('Please select a size first');$('#opts').scrollIntoView({block:'center',behavior:'smooth'});return false}
+ const sizeMsg=()=>{let e=$('#serr');if(!e){e=document.createElement('p');e.id='serr';e.className='serr';e.setAttribute('role','alert');$('.cta2').before(e)}e.textContent='Please choose a size above, then press the button again.';$('#opts').classList.add('shake');setTimeout(()=>$('#opts').classList.remove('shake'),600)};
+ async function add(){if(startsFrom()){toast('Please select a size first');sizeMsg();$('#opts').scrollIntoView({block:'center',behavior:'smooth'});return false}
   const line={sku:sku(),id:x.id,name:x.name,sel:Object.assign({},sel),price:price(),q:qty};const f=cart.find(l=>l.sku==line.sku);f?f.q=Math.min(99,f.q+qty):cart.push(line);save();renderC();await GI.addToCart(line);const b=$('#cn');b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),300);return true}
  $('#add').onclick=async()=>{if(await add())document.body.classList.add('co')};
  $('#buy').onclick=async()=>{if(await add())location.href='checkout.html'};
  const wl=()=>{try{return JSON.parse(localStorage.getItem('gi-wish')||'[]')}catch(e){return[]}};
  const hr=$('#hrt');hr.setAttribute('aria-pressed',wl().includes(x.id));
  hr.onclick=()=>{let l=wl();const on=!l.includes(x.id);l=on?l.concat(x.id):l.filter(k=>k!=x.id);try{localStorage.setItem('gi-wish',JSON.stringify(l))}catch(e){}hr.setAttribute('aria-pressed',on);GI.wishlist(x.id,on);toast(on?'Saved to your wishlist':'Removed from your wishlist')};
- $('#rel').innerHTML=cards(P.filter(y=>y.id!=x.id&&y.c==x.category).concat(P.filter(y=>y.id!=x.id&&y.c!=x.category)).slice(0,3));
+ $('#rel').innerHTML=cards(P.filter(y=>y.id!=x.id&&y.c==x.category).concat(P.filter(y=>y.id!=x.id&&y.c!=x.category)).slice(0,4));
+ $('#morecat').innerHTML=CATS.filter(c=>c[0]!='home'&&c[0]!=KEY).map(c=>({c,p:P.find(y=>y.c==c[1])||P.find(y=>(SLUG[y.c]||'')==c[0])})).sort((a,b)=>!!b.p-!!a.p).slice(0,4).map((r,i)=>`<a href="${r.c[2]}" aria-label="${h2(r.c[1])}">${r.p?med(r.p,0,''):`<img src="${IM[['s1','s2','s3','deco'][i%4]]}" alt="">`}<span>${h2(r.c[1])}</span></a>`).join('');
  /* SEO: description and product structured data */
  setMeta('description',(x.name+'. '+(x.description||'')).slice(0,155));
  const lowP=lowV?lowV.price:x.price,highP=lowV?Math.max(...V.map(v=>v.price)):x.price,inStock=(VM?V.reduce((a,w)=>a+w.stock,0):(x.stock==null?1:x.stock))>0;
@@ -204,13 +220,13 @@ if(PG=='product'){(async()=>{
  const sc=document.createElement('script');sc.type='application/ld+json';sc.textContent=JSON.stringify(ld);document.head.appendChild(sc);
 })()}
 /* header height for sticky blocks */
-{const T=document.querySelector('.top');const hh=()=>{if(T)document.documentElement.style.setProperty('--hh',T.offsetHeight+'px')};hh();addEventListener('resize',hh);addEventListener('load',hh)}
+{const T=document.querySelector('.top');const hh=()=>{if(!T)return;const m=T.querySelector('.cats.show');document.documentElement.style.setProperty('--hh',(T.offsetHeight-(m?m.offsetHeight:0))+'px')};hh();addEventListener('resize',hh);addEventListener('load',hh);try{document.fonts.ready.then(hh)}catch(e){}try{new ResizeObserver(hh).observe(T)}catch(e){}}
 /* CHECKOUT PAGE */
 if(PG=='checkout'){
  const ST=(()=>{try{return JSON.parse(localStorage.getItem('gi-settings')||'{}')}catch(e){return{}}})();
  const DEL=Object.assign({karachi:400,other:600},ST.delivery||{}),BK=Object.assign({title:'',bank:'',number:'',iban:'',note:''},ST.bank||{});
  const WA='03312523286';
- const rows=()=>cart.map(l=>({l,x:byId(l.id)})).filter(r=>r.x);
+ const rows=()=>cart.map(l=>({l,x:byId(l.id)||{id:l.id,n:l.name||'Product',svg:'<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="#eee"/></svg>'}}));
  const sub=()=>rows().reduce((a,r)=>a+r.l.price*r.l.q,0);
  const isKhi=c=>/^\s*karachi\s*$/i.test(c);
  const fee=c=>c.trim()?(isKhi(c)?DEL.karachi:DEL.other):null;
@@ -219,8 +235,8 @@ if(PG=='checkout'){
  function bankHtml(){const l=[['Account title',BK.title],['Bank',BK.bank],['Account number',BK.number],['IBAN',BK.iban]].filter(r=>r[1]);
   return l.length?`<dl class="bk">${l.map(r=>`<div><dt>${r[0]}</dt><dd>${h2(r[1])}</dd></div>`).join('')}</dl>${BK.note?`<p class="mut">${h2(BK.note)}</p>`:''}<p class="mut">After you transfer, send the receipt on WhatsApp ${WA} with your order number.</p>`:`<p class="mut">Our bank account details will be shown here.</p>`}
  function summary(){const r=rows(),c=$('#city')?$('#city').value:'',f=fee(c);
-  $('#sl3').innerHTML=r.map(({l,x})=>`<div class="si"><div class="sp">${med(x,0,'')}<b>${l.q}</b></div><div class="sn"><span>${h2(x.n)}</span><small>${h2(vname(l))}</small></div><span class="sx">${R(l.price*l.q)}</span></div>`).join('');
-  $('#s-sub').textContent=R(sub());$('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':(isKhi(c)?'Karachi':'Outside Karachi');$('#s-tot').textContent=R(sub()+(f||0))}
+  $('#sl3').innerHTML=r.map(({l,x})=>`<div class="si"><div class="sp">${med(x,0,'')}<b>${l.q}</b></div><div class="sn"><span>${h2(x.n)}${vname(l)?' – '+h2(vname(l)):''}</span>${l.q>1?`<small>Qty ${l.q} × ${R(l.price)}</small>`:''}</div><span class="sx">${R(l.price*l.q)}</span></div>`).join('');
+  $('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':'– '+(c.trim().replace(/\b\w/g,m=>m.toUpperCase()));$('#s-tot').textContent=R(sub()+(f||0))}
  function showBank(){const b=document.querySelector('input[name=pay]:checked').value=='Bank transfer';$('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked))}
  function init(){
   if(!rows().length){$('#cg').style.display='none';$('#empty').style.display='block';return}
@@ -228,7 +244,8 @@ if(PG=='checkout'){
   $('#cf').addEventListener('input',e=>{if(e.target.id=='city')summary();if(e.target.id)err(e.target.id,'')});
   $('#cf').addEventListener('change',e=>{if(e.target.name=='pay')showBank()});
   $('#place').onclick=place;$('#place2').onclick=place}
- async function place(){
+ async function place(){try{await place2()}catch(e){console.error(e);$('#place').disabled=false;$('#place2').disabled=false;$('#place').textContent='Place order';toast('Something went wrong. Please try again.')}}
+ async function place2(){
   const v=id=>$('#'+id).value.trim(),ph=v('phone').replace(/[\s-]/g,'');let bad=null;
   const chk=(id,ok,m)=>{if(!ok){err(id,m);bad=bad||id}else err(id,'')};
   chk('name',v('name').length>=2,'Enter your full name.');
@@ -237,12 +254,12 @@ if(PG=='checkout'){
   chk('addr',v('addr').length>=6,'Enter your address: flat or house, street number and landmark.');
   chk('city',v('city').length>=2,'Enter your city.');
   if(bad){const el=$('#'+bad);el.scrollIntoView({block:'center',behavior:'smooth'});el.focus({preventScroll:true});return}
-  const pay=document.querySelector('input[name=pay]:checked').value,f=fee(v('city')),items=rows().map(({l,x})=>({name:x.n+(vname(l)?' ('+vname(l)+')':''),qty:l.q,price:l.price,sku:l.sku,id:l.id}));
+  const pay=document.querySelector('input[name=pay]:checked').value,f=fee(v('city')),items=rows().map(({l,x})=>({name:x.n+(vname(l)?' – '+vname(l):''),qty:l.q,price:l.price,sku:l.sku,id:l.id}));
   const num=a=>{try{return JSON.parse(localStorage.getItem(a)||'[]')}catch(e){return[]}};
   const ids=num('gi-orders').concat(num('gi-orders-new')).map(o=>parseInt(String(o.id).replace(/\D/g,''))||0);
   const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,payment:pay,status:'Pending'};
   $('#place').disabled=true;$('#place2').disabled=true;$('#place').textContent='Placing order…';
-  await GI.placeOrder(order);
+  await GI.placeOrder(order);const mailP=GI.emailOrder(order);
   try{const nw=num('gi-orders-new');nw.unshift(order);localStorage.setItem('gi-orders-new',JSON.stringify(nw))}catch(e){}
   /* take the quantities out of the stock of products added from the admin area */
   try{const pr=num('gi-products');let ch=false;items.forEach(i=>{const c=pr.find(p=>p.id==i.id);if(!c||!c.variants)return;const vv=c.variants.find(w=>w.sku==i.sku);if(vv){vv.stock=Math.max(0,vv.stock-i.qty);c.stock=c.variants.reduce((a,w)=>a+w.stock,0);ch=true}});if(ch)localStorage.setItem('gi-products',JSON.stringify(pr))}catch(e){}
@@ -251,10 +268,11 @@ if(PG=='checkout'){
   $('#cg').style.display='none';const d=$('#done');d.style.display='block';
   d.innerHTML=`<div class="ok3"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.500"/></svg></div><h2>Thank you, ${h2(order.customer.split(' ')[0])}!</h2><p class="mut">Your order <b>${order.id}</b> has been placed. It will be processed and delivered within 3 to 5 days. We will call you on ${h2(order.phone)} to confirm.</p>
   <div class="cbx" style="text-align:left;margin-top:26px"><h3>Order summary</h3>${items.map(i=>`<div class="si" style="grid-template-columns:1fr auto"><div class="sn"><span>${h2(i.name)}</span><small>Qty ${i.qty}</small></div><span class="sx">${R(i.price*i.qty)}</span></div>`).join('')}
-  <div class="tl"><span>Delivery (${isKhi(order.city)?'Karachi':'Outside Karachi'})</span><span>${R(f)}</span></div><div class="tl big"><span>Total</span><span>${R(tot)}</span></div>
+  <div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div><div class="tl big"><span>Sub-Total</span><span>${R(tot)}</span></div>
   <p class="mut" style="margin-top:12px">Payment: <b>${pay}</b><br>Delivering to: ${h2(order.address)}, ${h2(order.city)}</p>
   ${pay=='Bank transfer'?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(tot)} to</h4>${bankHtml()}</div>`:''}</div>
-  <a class="btn" href="index.html" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'})}
+  <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="index.html" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
+  mailP.then(j=>{const n=$('#mailnote');if(n&&j&&j.customerEmailed)n.textContent='We have also emailed your order confirmation to '+order.email+'.'})}
  init()}
 /* SEARCH RESULTS PAGE */
 if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').trim();$('#si').value=q;const r=q?searchP(q):[];
@@ -264,5 +282,21 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
  if(q&&!r.length)$('#nores').innerHTML='<p class="mut">Try a simpler word such as “vase”, “tray” or “clock”, or browse a collection:</p><div class="chips">'+CATS.filter(c=>!['home','new'].includes(c[0])).map(c=>`<a href="${c[2]}">${c[1]}</a>`).join('')+'</div>'}
 
 /* shrink long card titles to fit one line */
-(function(){let t;const fit=()=>{document.querySelectorAll('.pc h3').forEach(h=>{h.style.fontSize='';let f=parseFloat(getComputedStyle(h).fontSize);while(h.scrollWidth>h.clientWidth+1&&f>14){f-=.5;h.style.fontSize=f+'px'}})};
+(function(){let t;const fit=()=>{return;document.querySelectorAll('.pc h3').forEach(h=>{h.style.fontSize='';let f=parseFloat(getComputedStyle(h).fontSize);while(h.scrollWidth>h.clientWidth+1&&f>14){f-=.5;h.style.fontSize=f+'px'}})};
  const go=()=>{clearTimeout(t);t=setTimeout(fit,40)};new MutationObserver(go).observe(document.body,{childList:true,subtree:true});addEventListener('resize',go);addEventListener('load',go);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(go);go()})();
+
+/* newsletter */
+(function(){const f=document.getElementById('nl');if(!f)return;f.addEventListener('submit',async e=>{e.preventDefault();const i=document.getElementById('nle'),m=document.getElementById('nlm'),v=i.value.trim();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){m.style.color='#e58a7e';m.textContent='Please enter a valid email address.';return}
+ try{const l=JSON.parse(localStorage.getItem('gi-subs')||'[]');if(!l.some(s=>s.email==v)){l.push({email:v,date:new Date().toISOString().slice(0,10)});localStorage.setItem('gi-subs',JSON.stringify(l))}}catch(e){}
+ try{if(GI.API_BASE)await fetch(GI.API_BASE+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:v})})}catch(e){}
+ i.value='';m.style.color='#F6CC66';m.textContent='Thank you for subscribing.'})})();
+
+/* footer quick links + their pages */
+(function(){const L=()=>{try{const l=JSON.parse(localStorage.getItem('gi-links')||'null');return Array.isArray(l)?l:LINKS_DEF}catch(e){return LINKS_DEF}};
+ const e2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const ql=document.getElementById('ql');if(ql)ql.innerHTML=L().filter(z=>z.active!==false).map(z=>`<li><a href="policies.html?id=${encodeURIComponent(z.id)}">${e2(z.title)}</a></li>`).join('');
+ const pb=document.getElementById('plb');if(pb){const id=new URLSearchParams(location.search).get('id'),z=L().find(x=>x.id==id)||L().filter(x=>x.active!==false)[0];
+  if(!z){document.getElementById('plt').textContent='Page not found';document.getElementById('plc').textContent='Not found'}
+  else{document.title=z.title+' | Golden Interiors';document.getElementById('plt').textContent=z.title;document.getElementById('plc').textContent=z.title;
+   pb.innerHTML=String(z.content||'').split(/\n\s*\n/).map(p=>`<p>${e2(p.trim()).replace(/\n/g,'<br>')}</p>`).join('')}}})();

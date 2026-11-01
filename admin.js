@@ -25,7 +25,7 @@ if(!store.get('gi-admin',null)){location.replace('login.html');return}
 /* ---------- data ---------- */
 const STATUS=['Pending','Processing','Shipped','Delivered','Cancelled'];
 const SP=[['two-tone-floor-vase','Two-Tone Glazed Floor Vase','Vases',24500,8],['dried-pampas-stems','Dried Pampas Stems','Decor & Ornaments',3500,40],['ivory-floor-vase','Ivory Sculpted Floor Vase','Vases',18500,5],['chevron-vase-trio','Chevron Vase Trio','Vases',38000,3],['chevron-floor-vase','Chevron Floor Vase','Vases',16500,9],['helix-floor-lamp','Helix LED Floor Lamp','Decor & Ornaments',29500,12],['tub-armchair','Linen Tub Armchair','Decor & Ornaments',46000,4],['woven-stool','Woven Rattan Stool','Decor & Ornaments',12500,15],['aurum-round-clock','Birch Round Wall Clock','Wall Clocks',14500,22],['noir-minimal-clock','Linea Minimal Wall Clock','Wall Clocks',11500,18],['walnut-ring-clock','Walnut Ring Clock','Wall Clocks',13500,14],];
-const LP=[['new','New Arrivals'],['sale','Sale'],['featured','Featured'],['explore','Explore by Collection'],['clocks','Wall Clocks']];
+const LP=[['new','New Arrivals'],['featured','Featured'],['explore','Explore by Collection'],['clocks','Wall Clocks']];
 const lpBox=(sel,id)=>`<div class="lp" id="${id}">${LP.map(([k,t])=>`<label class="cc"><input type="checkbox" value="${k}" ${sel.includes(k)?'checked':''}> ${t}</label>`).join('')}</div>`;
 const getCustom=()=>store.get('gi-products',[]);
 const getOv=()=>store.get('gi-overrides',{});
@@ -49,11 +49,12 @@ const saveLedger=l=>store.set('gi-ledger',l);
 function fin(){const o=getOrders(),l=getLedger();const rows=o.filter(x=>x.status=='Delivered').map(x=>({id:x.id,date:x.date,type:'Income',category:'Order sale',note:x.customer+' · '+x.id,amount:total(x),auto:true})).concat(l).sort((a,b)=>b.date.localeCompare(a.date));
  const inc=rows.filter(r=>r.type=='Income').reduce((a,r)=>a+r.amount,0),exp=rows.filter(r=>r.type=='Expense').reduce((a,r)=>a+r.amount,0);return{rows,inc,exp,net:inc-exp}}
 /* ---------- shell ---------- */
-const NAV=[['dashboard','Dashboard','dashboard.html'],['products','Products','products.html'],['discount','Discount','discount.html'],['slider','Slider','slider.html'],['settings','Settings','settings.html'],['add','Add Product','add-product.html'],['orders','Orders','orders.html'],['finance','Financial Record','finance.html'],['invoices','Invoices','invoices.html']];
-const TITLE={dashboard:'Dashboard',products:'Products',discount:'Discount',slider:'Landing Slider',settings:'Settings',add:(new URLSearchParams(location.search).get('edit')?'Edit Product':'Add Product'),orders:'Orders',finance:'Financial Record',invoices:'Invoices'};
-$('#side').innerHTML=`<img src="${IM.logo}" alt="Golden Interiors"><nav>${NAV.map(n=>`<a href="${n[2]}" class="${n[0]==PAGE?'on':''}">${n[1]}</a>`).join('')}</nav><div class="bt"><a href="index.html">View store</a><button class="lo" id="lo">Log out</button></div>`;
-$('#tb').innerHTML=`<button class="bg2" id="bg2" aria-label="Menu">☰</button><h1>${TITLE[PAGE]}</h1><span class="em">${esc(store.get('gi-admin',{}).email||'')}</span>`;
-$('#bg2').onclick=()=>$('#side').classList.toggle('o');
+const NAV=[['dashboard','Dashboard','dashboard.html'],['products','Products','products.html'],['add','Add Product','add-product.html'],['orders','Orders','orders.html'],['discount','Discount','discount.html'],['invoices','Invoices','invoices.html'],['finance','Financial Record','finance.html'],['settings','Settings (Delivery & Payments)','settings.html'],['slider','Slider','slider.html'],['links','Quick Links','quick-links.html']];
+const TITLE={dashboard:'Dashboard',products:'Products',discount:'Discount',slider:'Landing Slider',links:'Quick Links',settings:'Settings (Delivery & Payments)',add:(new URLSearchParams(location.search).get('edit')?'Edit Product':'Add Product'),orders:'Orders',finance:'Financial Record',invoices:'Invoices'};
+$('#side').innerHTML=`<img src="${IM.logo}" alt="Golden Interiors"><button class="sx2" id="sx2" aria-label="Close menu">×</button><nav>${NAV.map(n=>`<a href="${n[2]}" class="${n[0]==PAGE?'on':''}">${n[1].replace(/&/g,'&amp;')}</a>`).join('')}</nav><div class="bt"><a href="index.html">View store</a><button class="lo" id="lo">Log out</button></div>`;
+document.body.insertAdjacentHTML('beforeend','<div class="sov" id="sov"></div>');
+$('#tb').innerHTML=`<button class="bg2" id="bg2" aria-label="Menu">☰</button><h1>${esc(TITLE[PAGE])}</h1><span class="em">${esc(store.get('gi-admin',{}).email||'')}</span><a class="vs" href="index.html">View store</a>`;
+const sd=(o)=>{$('#side').classList.toggle('o',o);$('#sov').classList.toggle('o',o)};$('#bg2').onclick=()=>sd(!$('#side').classList.contains('o'));$('#sx2').onclick=()=>sd(false);$('#sov').onclick=()=>sd(false);document.addEventListener('keydown',e=>{if(e.key=='Escape')sd(false)});
 $('#lo').onclick=()=>{try{localStorage.removeItem('gi-admin')}catch(e){}location.href='login.html'};
 const pg=$('#pg'),modal=$('#modal');
 const openM=h=>{modal.innerHTML=`<div class="mb" role="dialog" aria-modal="true">${h}</div>`;modal.classList.add('o')};
@@ -75,15 +76,15 @@ function dashboard(){const o=getOrders(),f=fin(),live=o.filter(x=>x.status!='Can
  <div class="cd2"><h2>Quick actions</h2><div class="chips"><a class="btn2" href="add-product.html">Add product</a><a class="btn2 o" href="orders.html">Manage orders</a><a class="btn2 o" href="finance.html">Financial record</a><a class="btn2 o" href="invoices.html">Invoices</a></div></div>`}
 /* ---------- orders ---------- */
 let oFilter='All',oQ='';
-function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>All orders <button class="btn2" id="no">+ New order</button></h2><div class="tool"><div class="chips" id="of">${['All'].concat(STATUS).map(s=>`<button aria-pressed="${s==oFilter}" data-s="${s}">${s}</button>`).join('')}</div><input type="search" id="oq" placeholder="Search order, customer or city" value="${esc(oQ)}" style="max-width:300px"></div><div class="tw"><table class="t"><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>City</th><th>Items</th><th class="r">Total</th><th>Payment</th><th>Status</th><th></th></tr></thead><tbody id="ob"></tbody></table></div></div>`;
- const draw=()=>{const o=getOrders().filter(x=>(oFilter=='All'||x.status==oFilter)&&(!oQ||(x.id+x.customer+x.city).toLowerCase().includes(oQ.toLowerCase())));
-  $('#ob').innerHTML=o.length?o.map(x=>`<tr><td><b>${x.id}</b></td><td>${fdate(x.date)}</td><td>${esc(x.customer)}<br><small class="mut">${esc(x.phone)}</small></td><td>${esc(x.city)}</td><td>${x.items.reduce((a,i)=>a+i.qty,0)}</td><td class="r">${R(total(x))}</td><td>${esc(x.payment)}</td><td><select class="st" data-id="${x.id}" aria-label="Status for ${x.id}">${STATUS.map(s=>`<option ${s==x.status?'selected':''}>${s}</option>`).join('')}</select></td><td style="white-space:nowrap"><button class="btn2 o sm" data-v="${x.id}">View</button> <a class="btn2 sm" href="invoices.html?order=${x.id}">Invoice</a></td></tr>`).join(''):'<tr><td colspan="9" class="mut">No orders match.</td></tr>'};
+function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>All orders <button class="btn2" id="no">+ New order</button></h2><div class="tool"><div class="chips" id="of">${['All'].concat(STATUS).map(s=>`<button aria-pressed="${s==oFilter}" data-s="${s}">${s}</button>`).join('')}</div><input type="search" id="oq" placeholder="Search orders or tracking ID" value="${esc(oQ)}" style="max-width:300px"></div><div class="tw"><table class="t"><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>City</th><th>Items</th><th class="r">Total</th><th>Payment</th><th>Status</th><th>Tracking ID</th><th></th></tr></thead><tbody id="ob"></tbody></table></div></div>`;
+ const draw=()=>{const o=getOrders().filter(x=>(oFilter=='All'||x.status==oFilter)&&(!oQ||(x.id+x.customer+x.city+(x.tracking||'')).toLowerCase().includes(oQ.toLowerCase())));
+  $('#ob').innerHTML=o.length?o.map(x=>`<tr><td><b>${x.id}</b></td><td>${fdate(x.date)}</td><td>${esc(x.customer)}<br><small class="mut">${esc(x.phone)}</small></td><td>${esc(x.city)}</td><td>${x.items.reduce((a,i)=>a+i.qty,0)}</td><td class="r">${R(total(x))}</td><td>${esc(x.payment)}</td><td><select class="st" data-id="${x.id}" aria-label="Status for ${x.id}">${STATUS.map(s=>`<option ${s==x.status?'selected':''}>${s}</option>`).join('')}</select></td><td><input class="tk" data-id="${x.id}" value="${esc(x.tracking||'')}" placeholder="Add tracking ID" aria-label="Tracking ID for ${x.id}" maxlength="60"></td><td style="white-space:nowrap"><button class="btn2 o sm" data-v="${x.id}">View</button> <a class="btn2 sm" href="invoices.html?order=${x.id}">Invoice</a></td></tr>`).join(''):'<tr><td colspan="9" class="mut">No orders match.</td></tr>'};
  draw();
  $('#of').onclick=e=>{const b=e.target.closest('button');if(!b)return;oFilter=b.dataset.s;$$('#of button').forEach(x=>x.setAttribute('aria-pressed',x==b));draw()};
  $('#oq').oninput=e=>{oQ=e.target.value;draw()};
- $('#ob').onchange=e=>{const s=e.target.closest('select');if(!s)return;const o=getOrders();o.find(x=>x.id==s.dataset.id).status=s.value;saveOrders(o);draw()};
+ $('#ob').onchange=e=>{const t=e.target.closest('.tk');if(t){const o=getOrders();o.find(x=>x.id==t.dataset.id).tracking=t.value.trim();saveOrders(o);t.classList.add('sv2');setTimeout(()=>t.classList.remove('sv2'),900);return}const s=e.target.closest('select');if(!s)return;const o=getOrders();o.find(x=>x.id==s.dataset.id).status=s.value;saveOrders(o);draw()};
  $('#ob').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;const x=getOrders().find(o=>o.id==b.dataset.v);
-  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr></tbody></table><p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices.html?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM};
+  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}${x.tracking?' · Tracking ID: <b>'+esc(x.tracking)+'</b>':''}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr></tbody></table><p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices.html?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM};
  $('#no').onclick=()=>{const ps=allProducts();
   openM(`<h2>New order</h2><form id="nf" novalidate class="fg2"><label class="f">Customer name<input id="nc"><span class="e"></span></label><label class="f">Phone<input id="np" inputmode="tel"><span class="e"></span></label><label class="f">City<input id="ni"></label><label class="f">Payment<select id="ny"><option>Cash on delivery</option><option>Bank transfer</option><option>Card</option></select></label><label class="f w">Address<input id="na"></label><label class="f">Product<select id="nq">${ps.map(p=>`<option value="${p.id}">${esc(p.name)} (${R(p.price)})</option>`).join('')}</select></label><label class="f">Quantity<input id="nn" type="number" min="1" value="1"></label><div class="w" style="display:flex;gap:10px"><button class="btn2" type="submit">Create order</button><button class="btn2 o" type="button" id="cm">Cancel</button></div></form>`);
   $('#cm').onclick=closeM;
@@ -183,7 +184,7 @@ function addPage(banner){
  function prev(){const V=variants();$('#vs').textContent=V.length?`${V.length} variants · ${V.reduce((a,v)=>a+v.stock,0)} units in total`:'';
   $('#vp').innerHTML=V.length?V.map(v=>`<tr><td><input data-k="${esc(v.key)}" value="${esc(v.sku)}" style="min-width:150px"></td><td>${v.size||'One size'}</td><td>${v.colour?`<span class="dot" style="background:${v.swatch}"></span>${esc(v.colour)}`:'—'}</td><td class="r">${v.price?R(v.price):'—'}</td><td class="r">${v.compareAt?R(v.compareAt):'—'}</td><td class="r">${v.stock}</td></tr>`).join(''):'<tr><td colspan="6" class="mut">Tick a size above to create variants.</td></tr>'}
  $('#vp').oninput=e=>{if(e.target.dataset.k)S.sku[e.target.dataset.k]=e.target.value.trim().toUpperCase()};
- $('#pt').onchange=()=>{const k={New:'new',Sale:'sale'}[$('#pt').value];if(k)$('#lp input[value='+k+']').checked=true};
+ $('#pt').onchange=()=>{const k={New:'new',Sale:'sale'}[$('#pt').value];const cb=k&&$('#lp input[value='+k+']');if(cb)cb.checked=true};
  $('#pn').oninput=prev;$('#sk').oninput=prev;
  /* lists */
  const EID=new URLSearchParams(location.search).get('edit'),EP=EID&&getCustom().find(c=>c.id==EID);
@@ -300,6 +301,33 @@ function discountPage(){
   else if(b.dataset.t){put(l.map(x=>x.id==b.dataset.t?Object.assign({},x,{active:!x.active}):x));draw()}
   else if(b.dataset.x&&confirm('Delete this discount? Prices go back to normal.')){put(l.filter(x=>x.id!=b.dataset.x));draw()}});
  draw()}
+
+function linksPage(){
+ const get=()=>{const l=store.get('gi-links',null);return Array.isArray(l)?l:LINKS_DEF.map(x=>Object.assign({},x))};
+ const put=l=>{if(!store.set('gi-links',l))alert('The browser storage is full.')};
+ pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Footer quick links <button class="btn2" id="nl2">+ Add link</button></h2>
+ <p class="mut">These links appear in the footer of the store. Each link opens its own page showing the text you write here. Use the arrows to change the order, Hide to take a link off the footer without deleting it.</p><div id="ql2" style="margin-top:14px"></div></div>`;
+ function draw(){const l=get();$('#ql2').innerHTML=l.length?l.map((z,i)=>`<div class="srow ql"><div class="sinfo"><b>${esc(z.title||'Untitled')}</b><span class="mut">${esc((z.content||'').replace(/\s+/g,' ').slice(0,120))}${(z.content||'').length>120?'…':''}</span><span class="pill s-${z.active!==false?'Active':'Off'}" style="align-self:flex-start">${z.active!==false?'Showing':'Hidden'}</span></div>
+  <div class="acts"><button class="btn2 o sm" data-u="${i}" ${i==0?'disabled':''} aria-label="Move up">↑</button> <button class="btn2 o sm" data-d="${i}" ${i==l.length-1?'disabled':''} aria-label="Move down">↓</button> <button class="btn2 o sm" data-v="${i}">${z.active!==false?'Hide':'Show'}</button> <button class="btn2 o sm" data-e="${i}">Edit</button> <button class="btn2 d sm" data-x="${i}">Delete</button></div></div>`).join(''):'<p class="mut">No quick links yet. Press “+ Add link” to create one.</p>'}
+ function form(idx){const l=get(),z=idx==null?{id:'',title:'',content:'',active:true}:Object.assign({},l[idx]);
+  openM(`<h2>${idx==null?'Add quick link':'Edit quick link'}</h2><form id="qf" novalidate><div class="fg2">
+  <label class="f w">Link name (shown in the footer)<input id="qt" value="${esc(z.title)}" placeholder="e.g. Shipping Policies"></label>
+  <label class="f w">Page text (shown when a customer opens the link)<textarea id="qc" rows="10" placeholder="Write the text for this page. Leave an empty line between paragraphs.">${esc(z.content)}</textarea></label>
+  <label class="cc f w"><input type="checkbox" id="qa" ${z.active!==false?'checked':''}> Show this link in the footer</label></div>
+  <div class="er2" id="qe" role="alert"></div><div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save link</button><button class="btn2 o" type="button" id="qx">Cancel</button></div></form>`);
+  $('#qx').onclick=closeM;
+  $('#qf').onsubmit=e=>{e.preventDefault();const t=$('#qt').value.trim(),c=$('#qc').value.trim(),er=[];if(!t)er.push('Enter the link name.');if(!c)er.push('Write the text for the page.');
+   if(er.length){$('#qe').innerHTML='<ul>'+er.map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';return}
+   const n=get();let id=z.id;if(!id){const base=t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'link';id=base;let k=2;while(n.some(x=>x.id==id))id=base+'-'+k++}
+   const rec={id,title:t,content:c,active:$('#qa').checked};idx==null?n.push(rec):n[idx]=rec;put(n);closeM();draw()}}
+ $('#nl2').onclick=()=>form(null);
+ $('#ql2').onclick=e=>{const b=e.target.closest('button');if(!b)return;const l=get(),g=k=>b.dataset[k]!=null?+b.dataset[k]:null;
+  if(g('u')!=null){const i=g('u');[l[i-1],l[i]]=[l[i],l[i-1]];put(l);draw()}
+  else if(g('d')!=null){const i=g('d');[l[i+1],l[i]]=[l[i],l[i+1]];put(l);draw()}
+  else if(g('v')!=null){const i=g('v');l[i].active=l[i].active===false;put(l);draw()}
+  else if(g('e')!=null)form(g('e'));
+  else if(g('x')!=null){const i=g('x');if(confirm('Delete the link “'+l[i].title+'”? Its page will no longer be reachable.')){l.splice(i,1);put(l);draw()}}};
+ draw()}
 function sliderPage(){
  const get=()=>{const l=store.get('gi-slides',null);return (Array.isArray(l)?l:SLD_DEF.map(x=>Object.assign({},x))).map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z)};
  const put=l=>{if(!store.set('gi-slides',l))alert('The browser storage is full. Use a smaller image or delete an older slide.')};
@@ -358,5 +386,5 @@ function settingsPage(){
   if(!(k>=0)||!(o>=0)||$('#dk').value===''||$('#do').value===''){$('#me').innerHTML='<ul><li>Enter both delivery charges (0 or more).</li></ul>';return}
   $('#me').innerHTML='';store.set('gi-settings',{delivery:{karachi:k,other:o},bank:{title:$('#bt').value.trim(),bank:$('#bb').value.trim(),number:$('#bn').value.trim(),iban:$('#bi').value.trim(),note:$('#bx').value.trim()}});
   const m=$('#okm');m.style.display='block';m.textContent='Settings saved.';scrollTo(0,0)}}
-({dashboard,settings:settingsPage,slider:sliderPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
+({dashboard,settings:settingsPage,slider:sliderPage,links:linksPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
 })();
