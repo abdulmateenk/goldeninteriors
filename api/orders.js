@@ -2,6 +2,7 @@
 //   POST /api/orders          (public)  customer places an order -> {id}
 //   GET  /api/orders          (admin)   list all orders
 //   PUT  /api/orders          (admin)   {order, create?} save changes to one order
+//   DELETE /api/orders       (admin)   {id} remove one order for good
 // Admin calls need the header  x-admin-key  that matches the ADMIN_KEY environment variable.
 const crypto = require('crypto');
 const { cmd, configured } = require('./_kv');
@@ -110,7 +111,15 @@ module.exports = async (req, res) => {
       return send(res, 200, { ok: true, updatedAt: rec.updatedAt });
     }
 
-    res.setHeader('Allow', 'GET, POST, PUT');
+    if (req.method === 'DELETE') {
+      const b = await readBody(req);
+      const id = String((b && b.id) || '');
+      if (!/^GI-\d{3,8}$/.test(id)) return send(res, 400, { error: 'invalid_id' });
+      const n = await cmd(['HDEL', HASH, id]);
+      return send(res, n ? 200 : 404, { ok: !!n });
+    }
+
+    res.setHeader('Allow', 'GET, POST, PUT, DELETE');
     return send(res, 405, { error: 'method_not_allowed' });
   } catch (e) {
     return send(res, e && e.code === 503 ? 503 : 500, { error: 'server_error' });
