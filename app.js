@@ -239,13 +239,25 @@ if(PG=='checkout'){
  const err=(id,m)=>{const e=$('#e-'+id);if(e)e.textContent=m||'';const i=$('#'+id);if(i)i.classList.toggle('bad',!!m)};
  function bankHtml(){const l=[['Account title',BK.title],['Bank',BK.bank],['Account number',BK.number],['IBAN',BK.iban]].filter(r=>r[1]);
   return l.length?`<dl class="bk">${l.map(r=>`<div><dt>${r[0]}</dt><dd>${h2(r[1])}</dd></div>`).join('')}</dl>${BK.note?`<p class="mut">${h2(BK.note)}</p>`:''}<p class="mut">After you transfer, send the receipt on WhatsApp ${WA} with your order number.</p>`:`<p class="mut">Our bank account details will be shown here.</p>`}
- function summary(){const r=rows(),c=$('#city')?$('#city').value:'',f=fee(c);
-  $('#sl3').innerHTML=r.map(({l,x})=>`<div class="si"><div class="sp">${(()=>{try{return med(x,0,'')}catch(e){return''}})()}<b>${l.q}</b></div><div class="sn"><span>${h2(x.n)}${vname(l)?' – '+h2(vname(l)):''}</span>${l.q>1?`<small>Qty ${l.q} × ${R(l.price)}</small>`:''}</div><span class="sx">${R(l.price*l.q)}</span></div>`).join('');
-  $('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':'– '+(c.trim().replace(/\b\w/g,m=>m.toUpperCase()));$('#s-tot').textContent=R(sub()+(f||0))}
+ function summary(){let c='',f=null;try{c=$('#city')?$('#city').value:'';f=fee(c)}catch(e){}
+  let r=[];try{r=rows()}catch(e){r=(cart||[]).map(l=>({l,x:{n:l.name||'Product'}}))}
+  const box=$('#sl3');if(!box)return;let html='';
+  r.forEach(({l,x})=>{let s='';
+   try{const q=+l.q||1,p=+l.price||0,nm=String((x&&x.n)||l.name||'Product'),vn=(()=>{try{return vname(l)}catch(e){return''}})();
+    let th='';try{th=med(x,0,'')}catch(e){th=''}
+    s='<div class="si"><div class="sp">'+th+'<b>'+q+'</b></div><div class="sn"><span>'+h2(nm)+(vn?' – '+h2(vn):'')+'</span>'+(q>1?'<small>Qty '+q+' × '+R(p)+'</small>':'')+'</div><span class="sx">'+R(p*q)+'</span></div>'
+   }catch(e){try{s='<div class="si" style="display:flex;justify-content:space-between"><div class="sn"><span>'+h2(String(l.name||'Product'))+'</span><small>Qty '+(l.q||1)+'</small></div><span class="sx">'+R((+l.price||0)*(+l.q||1))+'</span></div>'}catch(e2){s='<div class="si"><span>'+(l.name||'Product')+' × '+(l.q||1)+'</span></div>'}}
+   html+=s});
+  box.innerHTML=html;
+  try{$('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':'– '+(c.trim().replace(/\b\w/g,m=>m.toUpperCase()))}catch(e){}
+  try{$('#s-tot').textContent=R(sub()+(f||0))}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
  function showBank(){const b=document.querySelector('input[name=pay]:checked').value=='Bank transfer';$('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked))}
  function init(){
   if(!rows().length){$('#cg').style.display='none';$('#empty').style.display='block';return}
-  $('#cg').style.display='grid';$('#empty').style.display='none';$('#dnote').textContent='Delivery: Karachi '+R(DEL.karachi)+', outside Karachi '+R(DEL.other)+'.';try{summary()}catch(e){console.error(e)}try{showBank()}catch(e){console.error(e)}
+  $('#cg').style.display='grid';$('#empty').style.display='none';$('#dnote').textContent='Delivery: Karachi '+R(DEL.karachi)+', outside Karachi '+R(DEL.other)+'.';try{summary()}catch(e){console.error(e);try{window.__gierr=String(e&&e.message||e)}catch(_){}}
+  try{if(!$('#sl3').children.length)summary()}catch(e){}
+  try{if(!$('#sl3').children.length){$('#sl3').innerHTML=(cart||[]).map(l=>'<div class="si" style="display:flex;justify-content:space-between"><span>'+String(l.name||'Product').replace(/</g,'&lt;')+' × '+(l.q||1)+'</span><span>Rs '+((+l.price||0)*(+l.q||1)).toLocaleString()+'</span></div>').join('')}}catch(e){}
+  try{showBank()}catch(e){console.error(e)}
   $('#cf').addEventListener('input',e=>{if(e.target.id=='city')summary();if(e.target.id)err(e.target.id,'')});
   $('#cf').addEventListener('change',e=>{if(e.target.name=='pay')showBank()});
   $('#place').onclick=place;$('#place2').onclick=place}
