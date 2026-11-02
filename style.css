@@ -362,3 +362,7 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .top .cn{top:0!important;right:0!important}
 }
 @media (max-width:860px){.top .logo img{height:36px!important}.top .ib{width:38px!important}.top .hd{padding:0 14px!important}}
+.top .hd{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important}
+.top .soc{justify-self:start}.top .act{justify-self:end}.top .logo{justify-self:center}
+@media (max-width:380px){.top .ib{width:34px!important}.top .logo img{height:32px!important}.top .hd{padding:0 10px!important}}
+@media (max-width:860px){.top .wrap{padding-left:8px!important;padding-right:8px!important}.top .hd{padding:0 4px!important}}

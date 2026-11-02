@@ -58,7 +58,7 @@ function setMeta(n,c){let m=document.querySelector('meta[name="'+n+'"]');if(!m){
  si.oninput=render;si.onfocus=render;
  si.onkeydown=e=>{if(e.key=='ArrowDown'){e.preventDefault();mark(act+1)}else if(e.key=='ArrowUp'){e.preventDefault();mark(act-1)}else if(e.key=='Enter'&&act>=0){e.preventDefault();location.href=opts()[act].querySelector('a').href}};
  $('#sf').onsubmit=e=>{e.preventDefault();const q=si.value.trim();if(q)location.href='search?q='+encodeURIComponent(q)};
- document.addEventListener('click',e=>{if(sr.classList.contains('o')&&document.contains(e.target)&&!e.target.closest('#sr')&&!e.target.closest('#sb'))sr.classList.remove('o')})}
+ document.addEventListener('click',e=>{if(e.isTrusted&&sr.classList.contains('o')&&document.contains(e.target)&&!e.target.closest('#sr')&&!e.target.closest('#sb'))sr.classList.remove('o')})}
 /* edits made to the sample products from the admin Products page */
 try{const ov=JSON.parse(localStorage.getItem('gi-overrides')||'{}');P.slice().forEach(x=>{const o=ov[x.id];if(!o)return;
  if(o.hidden){[P,NA,CK].forEach(a=>{const i=a.indexOf(x);if(i>-1)a.splice(i,1)});return}
