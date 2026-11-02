@@ -31,7 +31,7 @@ const NA=[
 {id:'tub-armchair',n:'Linen Tub Armchair',c:'Decor & Ornaments',p:46000,im:['s4c','s4'],d:'A rounded armchair in warm grey linen with slim walnut-tone legs. Includes a textured cushion.',s:'Width 30.5 in. Seat height 16.5 in. Linen blend, solid wood legs.'},
 {id:'woven-stool',n:'Woven Rattan Stool',c:'Decor & Ornaments',p:12500,im:['s4w','s4'],pos:'80% 70%',d:'A handwoven rattan stool that works as a side table or a plant stand.',s:'Height 15 in. Diameter 14 in. Natural rattan.'}];
 const P=NA.concat(CK);
-const CATS=[['home','Home','/'],['new','New Arrival','new-arrival'],['bathsets','Bathsets','bathsets'],['alarm','Alarm & Table Clocks','alarm-table-clocks'],['decor','Decor & Ornaments','decor-ornaments'],['candle','Candle Stands','candle-stands'],['clocks','Wall Clocks','wall-clocks'],['trays','Trays','trays'],['vases','Vases','vases'],['figurines','Figurines','figurines']];
+let CATS=[['home','Home','/'],['new','New Arrival','new-arrival'],['bathsets','Bathsets','bathsets'],['alarm','Alarm & Table Clocks','alarm-table-clocks'],['decor','Decor & Ornaments','decor-ornaments'],['candle','Candle Stands','candle-stands'],['clocks','Wall Clocks','wall-clocks'],['trays','Trays','trays'],['vases','Vases','vases'],['figurines','Figurines','figurines']];
 const LIST={new:['New Arrival','Our latest pieces.',()=>NA],bathsets:['Bathsets','Matching sets for a calm, finished bathroom.',()=>P.filter(x=>x.c=='Bathsets')],alarm:['Alarm & Table Clocks','Desk, bedside and shelf clocks.',()=>P.filter(x=>x.c=='Alarm & Table Clocks')],candle:['Candle Stands','Holders and stands for candles and tealights.',()=>P.filter(x=>x.c=='Candle Stands')],trays:['Trays','Serving and decorative trays.',()=>P.filter(x=>x.c=='Trays')],figurines:['Figurines','Sculpted figures and statement pieces.',()=>P.filter(x=>x.c=='Figurines')],clocks:['Wall Clocks','Timepieces that finish a wall.',()=>CK],decor:['Decor & Ornaments','Finishing touches for every corner.',()=>P.filter(x=>x.c=='Decor & Ornaments')],vases:['Vases','Floor vases and sculpted ceramics.',()=>P.filter(x=>x.c=='Vases')]};
 const SLD_DEF=[{id:'d1',layout:'image',image:'IM:hero',title:'Golden Interiors New Arrival',link:'new-arrival',active:true},{id:'d2',layout:'text',image:'IM:deco',title:'Decor & Ornaments',subtitle:'Sculpted vases, dried stems and finishing touches for every corner.',button:'Shop now',link:'decor-ornaments',active:true},{id:'d3',layout:'text',image:'IM:ck3o',title:'Wall Clocks',subtitle:'Quiet, elegant timepieces that finish a wall.',button:'Shop now',link:'wall-clocks',active:true}];
 CK.forEach(x=>{const m={'walnut-ring-clock':['ck1','ck1b'],'noir-minimal-clock':['ck2','ck2b'],'aurum-round-clock':['ck3','ck3b']}[x.id];if(m){x.photo=IM[m[0]];x.photo2=IM[m[1]];x.photo3=IM[m[0].replace(/b?$/,'')+'o']}});
@@ -64,3 +64,20 @@ P.forEach(x=>{x.show=(NA.includes(x)?['new']:[]).concat(CK.includes(x)?['clocks'
 const LINKS_DEF=[
 {id:'shipping',title:'Shipping Policies',active:true,content:'Orders are processed and delivered within 3 to 5 days. Delivery within Karachi is Rs. 400 and delivery outside Karachi is Rs. 600. We confirm every order by phone before it is dispatched, so please give a phone number that is reachable.\n\nYou can pay by cash on delivery, or by bank transfer to our account and send us the receipt on WhatsApp with your order number.'},
 {id:'terms',title:'Terms and Conditions',active:true,content:'By placing an order you confirm that the details you give are correct. Prices are in Pakistani rupees and may change without notice. Colours can look slightly different on different screens. We may cancel an order if an item is out of stock, and we will tell you if that happens.'}];
+
+/* header categories managed from the admin (saved on the server, cached in this browser) */
+const BASECATS=CATS.slice();
+const SUBS={};
+const CFG=(()=>{try{const a=JSON.parse(localStorage.getItem('gi-cats')||'null');return Array.isArray(a)&&a.length?a:null}catch(e){return null}})();
+if(CFG){const base=Object.fromEntries(BASECATS.map(c=>[c[0],c]));
+ CATS=[BASECATS[0]].concat(CFG.filter(c=>c&&c.key&&c.name).map(c=>{const b=base[c.key];SUBS[c.key]=(Array.isArray(c.sub)?c.sub:[]).filter(s=>s&&s.name&&s.url);return[c.key,String(c.name),b?b[2]:'category?c='+c.key,c.value||'']}))}
+CATS.forEach(c=>{if(c[0]=='home')return;if(LIST[c[0]]){LIST[c[0]][0]=c[1];return}
+ const v=c[3]||c[1];LIST[c[0]]=[c[1],'Browse our '+c[1]+' collection.',()=>P.filter(x=>x.c==v)];SLUG[v]=c[0]});
+/* store-wide message shown on every product card (editable in Admin > Discount) */
+const PROMO_DEF={on:true,text:'10% OFF on 30,000+ purchase (Applied at check out)'};
+const PROMO=(()=>{try{const p=JSON.parse(localStorage.getItem('gi-promo')||'null');if(p&&typeof p==='object')return{on:!!p.on,text:String(p.text||'')}}catch(e){}return PROMO_DEF})();
+
+/* automatic order discount at checkout (editable in Admin > Discount) */
+const RULE_DEF={on:true,min:30000,pct:10};
+const RULE=(()=>{try{const r=JSON.parse(localStorage.getItem('gi-rule')||'null');if(r&&typeof r==='object'&&r.min>0&&r.pct>0&&r.pct<100)return{on:!!r.on,min:+r.min,pct:+r.pct}}catch(e){}return RULE_DEF})();
+const ruleOff=s=>RULE.on&&s>=RULE.min?Math.round(s*RULE.pct/100):0;

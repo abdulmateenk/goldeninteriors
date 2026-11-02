@@ -13,6 +13,16 @@ const syncKey=()=>{try{return localStorage.getItem(SYNCK)||CRED.p}catch(e){retur
 async function apiOrders(method,body,key){if(!NET)return{status:0,ok:false,json:null};const k=key||syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
  try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/orders',{method,headers:h,body:body?JSON.stringify(body):undefined,signal:c.signal});let j=null;try{j=await r.json()}catch(e){}return{status:r.status,ok:r.ok,json:j}}catch(e){return{status:0,ok:false,json:null}}finally{clearTimeout(t)}}
 
+/* header categories (shared with customers through /api/config) */
+const CVAL={new:'',bathsets:'Bathsets',alarm:'Alarm & Table Clocks',decor:'Decor & Ornaments',candle:'Candle Stands',clocks:'Wall Clocks',trays:'Trays',vases:'Vases',figurines:'Figurines'};
+const baseCats=()=>(typeof BASECATS!=='undefined'?BASECATS:CATS).filter(c=>c[0]!='home');
+const defCats=()=>baseCats().map(c=>({key:c[0],name:c[1],value:CVAL[c[0]]!=null?CVAL[c[0]]:c[1],sub:[]}));
+function getCats(){try{const a=JSON.parse(localStorage.getItem('gi-cats')||'null');if(Array.isArray(a)&&a.length)return a}catch(e){}return defCats()}
+const catFile=k=>{const b=baseCats().find(c=>c[0]==k);return b?b[2]:'category?c='+k};
+const catVals=()=>getCats().filter(c=>c.value).map(c=>c.value);
+const catLbl=v=>{const c=getCats().find(c=>c.value==v);return c?c.name:v};
+async function apiConfig(method,body,key){if(!NET)return{status:0,ok:false,json:null};const k=key||syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
+ try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/config',{method,headers:h,body:body?JSON.stringify(body):undefined,signal:c.signal,cache:'no-store'});let j=null;try{j=await r.json()}catch(e){}return{status:r.status,ok:r.ok,json:j}}catch(e){return{status:0,ok:false,json:null}}finally{clearTimeout(t)}}
 const iso=d=>d.toISOString().slice(0,10);
 const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
 const fdate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -63,15 +73,15 @@ async function syncOrders(){if(!syncKey())return{state:'nokey'};
 const saveOrders=o=>{const prev=new Map((store.get('gi-orders',[])||[]).map(x=>[x.id,strip(x)])),ch=[];
  if(syncKey())o.forEach(x=>{if(prev.get(x.id)!==strip(x)){x.updatedAt=new Date().toISOString();ch.push([x,!prev.has(x.id)])}});
  const ok=store.set('gi-orders',o);ch.forEach(([x,cr])=>apiOrders('PUT',{order:x,create:cr}).then(res=>{if(res.status==409)alert('Order '+x.id+' already exists on the server. Refresh the page.');else if(!res.ok)console.warn('order not synced',res.status)}));return ok};
-const total=o=>o.items.reduce((a,i)=>a+i.price*i.qty,0)+o.delivery;
+const total=o=>o.items.reduce((a,i)=>a+i.price*i.qty,0)-(o.discount||0)+o.delivery;
 function seedLedger(){return[{id:'L1',date:daysAgo(4),type:'Expense',category:'Courier charges',note:'Weekly courier settlement',amount:9400},{id:'L2',date:daysAgo(9),type:'Expense',category:'Marketing',note:'Instagram and Facebook ads',amount:12000},{id:'L3',date:daysAgo(18),type:'Expense',category:'Stock purchase',note:'Ceramic vases from supplier',amount:48000},{id:'L4',date:daysAgo(26),type:'Expense',category:'Rent',note:'Showroom rent',amount:30000},{id:'L5',date:daysAgo(30),type:'Expense',category:'Salaries',note:'Staff salaries',amount:40000},{id:'L6',date:daysAgo(14),type:'Income',category:'Design consultation',note:'Interior consultation fee',amount:35000},{id:'L7',date:daysAgo(45),type:'Expense',category:'Stock purchase',note:'Lighting and clocks',amount:36000}]}
 const getLedger=()=>{let l=store.get('gi-ledger',null);if(!l){l=[];store.set('gi-ledger',l)}return l};
 const saveLedger=l=>store.set('gi-ledger',l);
 function fin(){const o=getOrders(),l=getLedger();const rows=o.filter(x=>x.status=='Delivered').map(x=>({id:x.id,date:x.date,type:'Income',category:'Order sale',method:(x.payment=='Cash on delivery'?'Cash':'Bank'),note:x.customer+' · '+x.id,amount:total(x),auto:true})).concat(l).sort((a,b)=>b.date.localeCompare(a.date));
  const inc=rows.filter(r=>r.type=='Income').reduce((a,r)=>a+r.amount,0),exp=rows.filter(r=>r.type=='Expense').reduce((a,r)=>a+r.amount,0);return{rows,inc,exp,net:inc-exp}}
 /* ---------- shell ---------- */
-const NAV=[['dashboard','Dashboard','dashboard'],['products','Products','products'],['add','Add Product','add-product'],['orders','Orders','orders'],['discount','Discount','discount'],['invoices','Invoices','invoices'],['finance','Financial Record','finance'],['settings','Settings (Delivery & Payments)','settings'],['slider','Slider','slider'],['links','Quick Links','quick-links']];
-const TITLE={dashboard:'Dashboard',products:'Products',discount:'Discount',slider:'Landing Slider',links:'Quick Links',settings:'Settings (Delivery & Payments)',add:(new URLSearchParams(location.search).get('edit')?'Edit Product':'Add Product'),orders:'Orders',finance:'Financial Record',invoices:'Invoices'};
+const NAV=[['dashboard','Dashboard','dashboard'],['products','Products','products'],['add','Add Product','add-product'],['orders','Orders','orders'],['discount','Discount','discount'],['invoices','Invoices','invoices'],['finance','Financial Record','finance'],['settings','Settings (Delivery & Payments)','settings'],['slider','Slider','slider'],['categories','Header Categories','categories'],['links','Quick Links','quick-links']];
+const TITLE={dashboard:'Dashboard',products:'Products',discount:'Discount',slider:'Landing Slider',categories:'Header Categories',links:'Quick Links',settings:'Settings (Delivery & Payments)',add:(new URLSearchParams(location.search).get('edit')?'Edit Product':'Add Product'),orders:'Orders',finance:'Financial Record',invoices:'Invoices'};
 $('#side').innerHTML=`<img src="${IM.logo}" alt="Golden Interiors"><button class="sx2" id="sx2" aria-label="Close menu">×</button><nav>${NAV.map(n=>`<a href="${n[2]}" class="${n[0]==PAGE?'on':''}">${n[1].replace(/&/g,'&amp;')}</a>`).join('')}</nav><div class="bt"><a href="/">View store</a><button class="lo" id="lo">Log out</button></div>`;
 document.body.insertAdjacentHTML('beforeend','<div class="sov" id="sov"></div>');
 $('#tb').innerHTML=`<button class="bg2" id="bg2" aria-label="Menu">☰</button><h1>${esc(TITLE[PAGE])}</h1><span class="em">${esc(store.get('gi-admin',{}).email||'')}</span><a class="vs" href="/">View store</a>`;
@@ -110,7 +120,7 @@ function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Al
    let ok=true;if(syncKey()){const r0=await apiOrders('DELETE',{id});ok=r0.ok||r0.status==404;if(!ok){try{const q=JSON.parse(localStorage.getItem('gi-deleted')||'[]');q.push(id);localStorage.setItem('gi-deleted',JSON.stringify(q))}catch(e2){}}}
    closeM();draw();if(!ok)alert('Order removed here, but the server could not be reached. It will be removed from the server automatically next time you open the admin.')};return}
   const b=e.target.closest('[data-v]');if(!b)return;const x=getOrders().find(o=>o.id==b.dataset.v);
-  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}${x.tracking?' · Tracking ID: <b>'+esc(x.tracking)+'</b>':''}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr></tbody></table><p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM};
+  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}${x.tracking?' · Tracking ID: <b>'+esc(x.tracking)+'</b>':''}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}${x.discount>0?`<tr><td>Discount</td><td></td><td class="r">− ${R(x.discount)}</td></tr>`:''}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr></tbody></table><p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM};
  $('#no').onclick=()=>{const ps=allProducts();
   openM(`<h2>New order</h2><form id="nf" novalidate class="fg2"><label class="f">Customer name<input id="nc"><span class="e"></span></label><label class="f">Phone<input id="np" inputmode="tel"><span class="e"></span></label><label class="f">City<input id="ni"></label><label class="f">Payment<select id="ny"><option>Cash on delivery</option><option>Bank transfer</option><option>Card</option></select></label><label class="f w">Address<input id="na"></label><label class="f">Product<select id="nq">${ps.map(p=>`<option value="${p.id}">${esc(p.name)} (${R(p.price)})</option>`).join('')}</select></label><label class="f">Quantity<input id="nn" type="number" min="1" value="1"></label><div class="w" style="display:flex;gap:10px"><button class="btn2" type="submit">Create order</button><button class="btn2 o" type="button" id="cm">Cancel</button></div></form>`);
   $('#cm').onclick=closeM;
@@ -118,6 +128,38 @@ function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Al
    chk('nc',v=>v.trim().length>1,'Enter the customer name.');chk('np',v=>/^[+\d][\d\s-]{8,}$/.test(v.trim()),'Enter a valid phone number.');if(!ok)return;
    const p=ps.find(x=>x.id==$('#nq').value),all=getOrders();const n=Math.max(...all.map(x=>parseInt(x.id.slice(3))))+1;
    all.unshift({id:'GI-'+n,date:daysAgo(0),customer:$('#nc').value.trim(),phone:$('#np').value.trim(),city:$('#ni').value.trim()||'—',address:$('#na').value.trim()||'—',items:[{name:p.name,qty:Math.max(1,parseInt($('#nn').value)||1),price:p.price}],delivery:300,payment:$('#ny').value,status:'Pending'});saveOrders(all);closeM();draw()}}}
+function categoriesPage(){
+ let list=getCats().map(c=>({key:c.key,name:c.name,value:c.value,sub:(c.sub||[]).map(s=>({name:s.name,url:s.url}))}));
+ const slug=n=>String(n).toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,30)||'category';
+ const wordOf=u=>{const m=/^\/search\?q=(.*)$/.exec(u||'');if(m){try{return decodeURIComponent(m[1])}catch(e){return m[1]}}return u||''};
+ const urlOf=w=>{w=String(w||'').trim();return/^(\/|https?:\/\/)/.test(w)?w:(w?'/search?q='+encodeURIComponent(w):'')};
+ pg.innerHTML=`<div class="ok2" id="cmsg" role="status"></div><div class="cd2" style="margin-top:0"><h2>Header categories <span style="display:flex;gap:8px"><button class="btn2 o sm" id="crs">Restore default categories</button><button class="btn2" id="csv">Save changes</button></span></h2><p class="mut">These are the links in the website header. Every category here also appears in <b>Explore by Collection</b> on the home page. Rename a category, add a <b>sub-heading</b> to give it a dropdown, change the order, or remove it. Click <b>Save changes</b> when you are done.</p><div id="cl" style="margin-top:16px"></div><p style="margin-top:16px"><button class="btn2" id="ca">+ Add category</button></p></div>`;
+ const note=(t,bad)=>{const m=$('#cmsg');m.textContent=t;m.style.display='block';m.style.background=bad?'#fdecea':'';m.style.color=bad?'#8a1c12':'';scrollTo({top:0,behavior:'smooth'})};
+ const draw=()=>{$('#cl').innerHTML=list.map((c,i)=>`<div class="cd2" style="margin:0 0 14px;padding:16px" data-i="${i}">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="cn" value="${esc(c.name)}" maxlength="40" aria-label="Category name" style="flex:1;min-width:160px;font-weight:600"><button class="btn2 o sm" data-up ${i==0?'disabled':''} aria-label="Move up">↑</button><button class="btn2 o sm" data-dn ${i==list.length-1?'disabled':''} aria-label="Move down">↓</button><button class="btn2 o sm" data-rm style="color:#b3261e;border-color:#b3261e">Remove</button></div>
+  <p class="mut" style="margin:6px 0 10px;font-size:12px">${c.key=='new'?'Shows the newest products.':'Shows products in the category “'+esc(c.value||c.name)+'”.'}</p>
+  <div class="subs">${c.sub.map((s,j)=>`<div style="display:flex;gap:8px;margin:6px 0;flex-wrap:wrap" data-j="${j}"><input class="sn2" value="${esc(s.name)}" placeholder="Sub-heading name" maxlength="40" style="flex:1;min-width:140px"><input class="su" value="${esc(wordOf(s.url))}" placeholder="Search word (e.g. floor vase) or link (e.g. /vases)" style="flex:2;min-width:180px"><button class="btn2 o sm" data-sr aria-label="Remove sub-heading">×</button></div>`).join('')}</div>
+  <button class="btn2 o sm" data-sa style="margin-top:6px">+ Add sub-heading</button></div>`).join('')||'<p class="mut">No categories yet. Add one below.</p>'};
+ const pull=()=>{$$('#cl [data-i]').forEach(el=>{const c=list[+el.dataset.i];c.name=el.querySelector('.cn').value;c.sub=[...el.querySelectorAll('[data-j]')].map(r=>({name:r.querySelector('.sn2').value,url:r.querySelector('.su').value}))})};
+ draw();
+ $('#cl').onclick=e=>{const el=e.target.closest('[data-i]');if(!el)return;const b=e.target.closest('button');if(!b)return;pull();const i=+el.dataset.i,c=list[i];
+  if(b.hasAttribute('data-up')&&i>0){list.splice(i-1,0,list.splice(i,1)[0]);draw()}
+  else if(b.hasAttribute('data-dn')&&i<list.length-1){list.splice(i+1,0,list.splice(i,1)[0]);draw()}
+  else if(b.hasAttribute('data-sa')){c.sub.push({name:'',url:''});draw()}
+  else if(b.hasAttribute('data-sr')){c.sub.splice(+b.parentNode.dataset.j,1);draw()}
+  else if(b.hasAttribute('data-rm')){openM(`<h2>Remove “${esc(c.name)}”?</h2><p class="mut" style="margin:10px 0 18px">It will disappear from the header and from Explore by Collection after you press Save changes. Products are not deleted.</p><p style="display:flex;gap:10px"><button class="btn2" id="dy" style="background:#b3261e;border-color:#b3261e">Yes, remove</button><button class="btn2 o" id="cm">Cancel</button></p>`);$('#cm').onclick=closeM;$('#dy').onclick=()=>{list.splice(i,1);closeM();draw()}}};
+ $('#ca').onclick=()=>{pull();openM(`<h2>Add a category</h2><label class="f" style="margin:12px 0">Category name<input id="an" maxlength="40" placeholder="e.g. Mirrors"></label><p class="mut" style="margin-bottom:14px">After adding it, choose this category when you add products and they will appear on its page.</p><p style="display:flex;gap:10px"><button class="btn2" id="ay">Add</button><button class="btn2 o" id="cm">Cancel</button></p>`);$('#cm').onclick=closeM;
+  $('#ay').onclick=()=>{const n=$('#an').value.trim();if(!n){$('#an').focus();return}let k=slug(n);const used=new Set(list.map(x=>x.key).concat(['home','category']));let b=k,z=2;while(used.has(k))k=b+'-'+z++;list.push({key:k,name:n,value:n,sub:[]});closeM();draw()}};
+ $('#crs').onclick=()=>{openM(`<h2>Restore default categories?</h2><p class="mut" style="margin:10px 0 18px">This brings back the original header categories and removes your renamed or added ones and all sub-headings.</p><p style="display:flex;gap:10px"><button class="btn2" id="dy">Yes, restore</button><button class="btn2 o" id="cm">Cancel</button></p>`);$('#cm').onclick=closeM;$('#dy').onclick=async()=>{closeM();try{localStorage.removeItem('gi-cats')}catch(e){}let ok=true;if(syncKey()){const r=await apiConfig('PUT',{cats:null});ok=r.ok}list=defCats();draw();note(ok?'Default categories restored.':'Restored here, but the server could not be reached. Open this page again when you are online and press Save changes.',!ok)}};
+ $('#csv').onclick=async()=>{pull();const out=[];for(const c of list){const n=c.name.trim();if(!n){note('Every category needs a name.',true);return}
+   const sub=[];for(const s of c.sub){const sn=s.name.trim(),su=urlOf(s.url);if(!sn&&!String(s.url).trim())continue;if(!sn||!su){note('Each sub-heading in “'+n+'” needs a name and a search word or link.',true);return}sub.push({name:sn,url:su})}
+   out.push({key:c.key,name:n,value:c.value,sub})}
+  if(!out.length){note('Keep at least one category.',true);return}
+  $('#csv').disabled=true;try{localStorage.setItem('gi-cats',JSON.stringify(out))}catch(e){}list=out.map(c=>({key:c.key,name:c.name,value:c.value,sub:c.sub.map(s=>({name:s.name,url:s.url}))}));draw();
+  let msg='Saved on this device only. Customers will not see it until the server is reachable.',bad=true;
+  if(syncKey()){const r=await apiConfig('PUT',{cats:out});if(r.ok){msg='Saved. Customers will see the new header and collections the next time they open the website.';bad=false}else if(r.status==401)msg='Saved here, but the server refused it: your admin password does not match ADMIN_KEY. Log out and log in with the server password.';else if(r.status==503)msg='Saved here, but the server storage (database) is not connected.';else msg='Saved here, but the server could not be reached. Press Save changes again when you are online.'}
+  $('#csv').disabled=false;note(msg,bad)};
+ apiConfig('GET').then(r=>{if(r.ok&&r.json&&Array.isArray(r.json.cats)&&r.json.cats.length){try{localStorage.setItem('gi-cats',JSON.stringify(r.json.cats))}catch(e){}list=r.json.cats.map(c=>({key:c.key,name:c.name,value:c.value,sub:(c.sub||[]).map(s=>({name:s.name,url:s.url}))}));draw()}})}
 /* ---------- finance ---------- */
 let fT='All',fM='All',fP='All time',fFrom='',fTo='';
 function financePage(){
@@ -163,19 +205,19 @@ function invoicesPage(){const o=getOrders().filter(x=>x.status!='Cancelled');let
   const sub=x.items.reduce((a,i)=>a+i.price*i.qty,0),paid=x.status=='Delivered';
   $('#inv').innerHTML=`<div class="ih"><img src="${IM.logo}" alt="Golden Interiors"><div style="text-align:right"><h2>Invoice</h2><div>INV-${x.id.slice(3)}</div></div></div><div class="ib2"><div class="g3"><div><h4>Billed to</h4><b>${esc(x.customer)}</b><br>${esc(x.address)}<br>${esc(x.phone)}</div><div><h4>Details</h4>Order ${x.id}<br>Date ${fdate(x.date)}<br>${esc(x.payment)}</div><div><h4>Status</h4>${pill(paid?'Paid':'Due')}<br><small class="mut">Order ${x.status.toLowerCase()}</small></div></div>
   <table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody>${x.items.map(i=>`<tr><td>${esc(i.name)}</td><td class="r">${i.qty}</td><td class="r">${R(i.price)}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}</tbody></table>
-  <div class="tot"><div><span>Subtotal</span><span>${R(sub)}</span></div><div><span>Delivery</span><span>${R(x.delivery)}</span></div><div class="gt"><span>Total</span><span>${R(total(x))}</span></div></div></div><div class="ft">Golden Interiors · hello@goldeninteriors.pk · +92 300 000 0000<br>Thank you for your order. Orders are processed and delivered within 3 to 5 days.</div>`};
+  <div class="tot"><div><span>Subtotal</span><span>${R(sub)}</span></div>${x.discount>0?`<div><span>Discount</span><span>− ${R(x.discount)}</span></div>`:''}<div><span>Delivery</span><span>${R(x.delivery)}</span></div><div class="gt"><span>Total</span><span>${R(total(x))}</span></div></div></div><div class="ft">Golden Interiors · hello@goldeninteriors.pk · +92 300 000 0000<br>Thank you for your order. Orders are processed and delivered within 3 to 5 days.</div>`};
  list();show();
  $('#il').onclick=e=>{const b=e.target.closest('button');if(!b)return;sel=b.dataset.id;list();show();try{history.replaceState(null,'','?order='+sel)}catch(x){}};
  $('#iq').oninput=e=>{q=e.target.value;list()};
  $('#pr').onclick=()=>{try{window.print()}catch(e){alert('Printing is not available in this view. Open the page in its own tab and try again.')}}}
 /* ---------- add product ---------- */
 function addPage(banner){
- let imgs=[],cid=0;const SIZES=['One size','Small','Medium','Large'],CATSL=['Bathsets','Alarm & Table Clocks','Decor & Ornaments','Candle Stands','Wall Clocks','Trays','Vases','Figurines'];
+ let imgs=[],cid=0;const SIZES=['One size','Small','Medium','Large'],CATSL=catVals();
  const S={colours:[],rows:{},sku:{}};SIZES.forEach(s=>S.rows[s]={on:s=='One size',price:'',compare:'',photo:'',qty:'',cells:{}});
  pg.innerHTML=`<div class="ok2" id="okm" role="status"></div><form id="pf" novalidate>
  <div class="cd2" style="margin-top:0"><h2>1. Product details</h2><div class="fg2">
  <label class="f w">Product name<input id="pn"><span class="e"></span></label>
- <label class="f">Category<select id="pc">${CATSL.map(c=>`<option>${c}</option>`).join('')}</select></label>
+ <label class="f">Category<select id="pc">${CATSL.map(c=>`<option value="${esc(c)}">${esc(catLbl(c))}</option>`).join('')}</select></label>
  <label class="f">Tag<select id="pt"><option value="">None</option><option>New</option><option>Sale</option></select></label>
  <label class="f">SKU prefix<input id="sk" placeholder="Auto from the name"></label><div></div>
  <label class="f w">Description<textarea id="pd" rows="3"></textarea><span class="e"></span></label></div></div>
@@ -268,11 +310,11 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
   if(EP){location.href='products?saved='+encodeURIComponent(name);return}
   addPage(`Saved “${esc(name)}” with ${V.length} variants. <a href="product?id=${id}">View it on the store</a>`);scrollTo(0,0)}}
 function productsPage(){
- let q='',cat='';const CAT=['Bathsets','Alarm & Table Clocks','Decor & Ornaments','Candle Stands','Wall Clocks','Trays','Vases','Figurines'];
+ let q='',cat='';const CAT=catVals();
  const thumb=p=>{if(p.custom){return p.img?`<img class="th2" src="${p.img}" alt="">`:''}const cp=P.find(x=>x.id==p.id);if(!cp)return'';return cp.photo?`<img class="th2" src="${cp.photo}" alt="">`:cp.svg?`<span class="th2 sv">${cp.svg}</span>`:(cp.im?`<img class="th2" src="${IM[cp.im[0]]}" alt="">`:'')};
  const saved=new URLSearchParams(location.search).get('saved');
  pg.innerHTML=`${saved?`<div class="ok2" style="display:block" role="status">Saved changes to “${esc(saved)}”.</div>`:''}<div class="cd2" style="margin-top:0"><h2>All products <a class="btn2" href="add-product">+ Add Product</a></h2>
- <div class="tool"><input id="fq" type="search" placeholder="Search products" aria-label="Search products"><select id="fc" aria-label="Filter by category"><option value="">All categories</option>${CAT.map(c=>`<option>${c}</option>`).join('')}</select><span class="mut" id="cnt"></span></div>
+ <div class="tool"><input id="fq" type="search" placeholder="Search products" aria-label="Search products"><select id="fc" aria-label="Filter by category"><option value="">All categories</option>${CAT.map(c=>`<option value="${esc(c)}">${esc(catLbl(c))}</option>`).join('')}</select><span class="mut" id="cnt"></span></div>
  <div class="tw"><table class="t"><thead><tr><th></th><th>Product</th><th>Category</th><th class="r">Price</th><th class="r">Stock</th><th>Actions</th></tr></thead><tbody id="pl"></tbody></table></div></div>
  <div class="cd2" id="hid" style="display:none"><h2>Deleted sample products</h2><p class="mut">These are hidden from the store. Restore to show them again.</p><div class="tw"><table class="t"><tbody id="hl"></tbody></table></div></div>`;
  function draw(){const l=allProducts().concat(getCustom().length?[]:[]).filter(p=>(!cat||p.cat==cat)&&(!q||(p.name+' '+p.cat).toLowerCase().includes(q)));
@@ -305,14 +347,21 @@ function productsPage(){
   else if(b.dataset.r){const ov=getOv();if(ov[b.dataset.r])delete ov[b.dataset.r].hidden;store.set('gi-overrides',ov);draw()}});
  draw()}
 function discountPage(){
- const CAT=['Bathsets','Alarm & Table Clocks','Decor & Ornaments','Candle Stands','Wall Clocks','Trays','Vases','Figurines'];
- const get=()=>store.get('gi-discounts',[]),put=l=>store.set('gi-discounts',l);
+ const CAT=catVals();
+ const get=()=>store.get('gi-discounts',[]);
+ const dnote=(t,bad)=>{const m=$('#dmsg');if(!m)return;m.textContent=t;m.style.display=t?'block':'none';m.style.background=bad?'#fdecea':'';m.style.color=bad?'#8a1c12':''};
+ const pushCfg=async part=>{if(!syncKey())return;const r=await apiConfig('PUT',part);if(!r.ok)dnote(r.status==401?'Saved here, but the server refused it: your admin password does not match ADMIN_KEY.':r.status==503?'Saved here, but the server storage (database) is not connected.':'Saved here, but the server could not be reached, so customers may not see it yet. Press Save again when you are online.',true);else dnote('')};
+ const put=l=>{const ok=store.set('gi-discounts',l);pushCfg({discounts:l});return ok};
+ const getP=()=>store.get('gi-promo',null)||Object.assign({},PROMO_DEF);
+ const getR=()=>Object.assign({},RULE_DEF,store.get('gi-rule',null)||{});
  const today=iso(new Date());
  const state=r=>!r.active?'Off':(r.start&&today<r.start)?'Scheduled':(r.end&&today>r.end)?'Expired':'Active';
  const val=r=>r.type=='percent'?r.value+'% off':R(r.value)+' off';
  const target=r=>r.scope=='products'?(r.products||[]).map(id=>(allProducts().find(p=>p.id==id)||{name:id}).name).join(', ')||'—':(r.categories||[]).join(', ')||'—';
  const dates=r=>r.start||r.end?`${r.start?fdate(r.start):'Now'} → ${r.end?fdate(r.end):'No end date'}`:'Always';
- pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Discounts <button class="btn2" id="nd">+ New discount</button></h2><p class="mut">Discounts show on the store straight away: a lower price, the old price crossed out and a badge on the product. If two discounts apply to one product, the bigger saving is used.</p>
+ pg.innerHTML=`<div class="ok2" id="dmsg" role="status"></div><div class="cd2" style="margin-top:0"><h2>Message on every product</h2><p class="mut">This message shows in the yellow bar on every product card. When a discount below applies to a product or category, that discount's own message is shown there instead. When the discount ends, this message comes back.</p><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px"><label class="cc"><input type="checkbox" id="pon" ${getP().on?'checked':''}> Show</label><input id="ptx" value="${esc(getP().text)}" maxlength="160" placeholder="e.g. 10% OFF on 30,000+ purchase (Applied at check out)" style="flex:1;min-width:240px"><button class="btn2" id="psv">Save message</button></div><p class="mut" style="margin-top:8px;font-size:12px">This is only a message. If it promises a discount at checkout, make sure you apply it to the order yourself.</p></div>
+ <div class="cd2"><h2>Automatic order discount</h2><p class="mut">Applied at checkout by itself when the customer's order reaches the minimum below. It is worked out on the order total after any product discounts, before delivery, and shown on the checkout page, the order and the invoice.</p><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:12px"><label class="cc"><input type="checkbox" id="ron" ${getR().on?'checked':''}> On</label><label class="f" style="margin:0">Order total of at least (Rs.)<input id="rmin" type="number" min="1" value="${getR().min}" style="max-width:170px"></label><label class="f" style="margin:0">Discount (%)<input id="rpc" type="number" min="1" max="99" value="${getR().pct}" style="max-width:110px"></label><button class="btn2" id="rsv">Save</button></div><p class="mut" id="rex" style="margin-top:8px;font-size:12px"></p></div>
+ <div class="cd2"><h2>Discounts <button class="btn2" id="nd">+ New discount</button></h2><p class="mut">Discounts show on the store straight away: a lower price, the old price crossed out and a badge on the product. If two discounts apply to one product, the bigger saving is used.</p>
  <div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Name</th><th>Discount</th><th>Applies to</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead><tbody id="dl"></tbody></table></div></div>`;
  function draw(){const l=get();$('#dl').innerHTML=l.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td>${val(r)}</td><td style="max-width:280px"><span class="mut">${r.scope=='products'?'Products':'Categories'}:</span> ${esc(target(r))}</td><td>${dates(r)}</td><td><span class="pill s-${state(r)}">${state(r)}</span></td>
   <td class="acts"><button class="btn2 o sm" data-t="${r.id}">${r.active?'Turn off':'Turn on'}</button> <button class="btn2 o sm" data-e="${r.id}">Edit</button> <button class="btn2 d sm" data-x="${r.id}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6" class="mut">No discounts yet. Click “+ New discount” to create one.</td></tr>'}
@@ -324,8 +373,9 @@ function discountPage(){
   <label class="f">Value<input id="dv" type="number" min="1" value="${esc(r.value)}" placeholder="e.g. 20"></label>
   <label class="f">Start date (optional)<input id="ds" type="date" value="${r.start||''}"></label><label class="f">End date (optional)<input id="de" type="date" value="${r.end||''}"></label>
   <div class="f w"><span>Apply to</span><div class="lp" style="margin-top:8px"><label class="cc"><input type="radio" name="sc" value="categories" ${r.scope!='products'?'checked':''}> Whole categories</label><label class="cc"><input type="radio" name="sc" value="products" ${r.scope=='products'?'checked':''}> Specific products</label></div></div>
-  <div class="f w" id="bc"><div class="lp">${CAT.map(c=>`<label class="cc"><input type="checkbox" data-c value="${esc(c)}" ${(r.categories||[]).includes(c)?'checked':''}> ${esc(c)}</label>`).join('')}</div></div>
+  <div class="f w" id="bc"><div class="lp">${CAT.map(c=>`<label class="cc"><input type="checkbox" data-c value="${esc(c)}" ${(r.categories||[]).includes(c)?'checked':''}> ${esc(catLbl(c))}</label>`).join('')}</div></div>
   <div class="f w" id="bp"><input id="dq" type="search" placeholder="Search products" style="margin-bottom:8px"><div class="plist" id="pls">${ps.map(p=>`<label class="cc" data-n="${esc((p.name+' '+p.cat).toLowerCase())}"><input type="checkbox" data-p value="${p.id}" ${(r.products||[]).includes(p.id)?'checked':''}> ${esc(p.name)} <span class="mut">· ${esc(p.cat)} · ${R(p.price)}</span></label>`).join('')}</div></div>
+  <label class="f w">Message shown on the products<input id="dm" maxlength="140" value="${esc(r.msg||'')}" placeholder="Leave empty for: name and amount off (e.g. Winter sale, 20% OFF)"></label>
   <label class="cc f w"><input type="checkbox" id="da" ${r.active?'checked':''}> Active</label></div>
   <p class="mut" id="dx" style="margin-top:8px"></p><div class="er2" id="de2" role="alert"></div>
   <div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save discount</button><button class="btn2 o" type="button" id="dc">Cancel</button></div></form>`);
@@ -342,9 +392,18 @@ function discountPage(){
    if(!picked().length)errs.push(scope()=='products'?'Choose at least one product.':'Choose at least one category.');
    if($('#ds').value&&$('#de').value&&$('#de').value<$('#ds').value)errs.push('The end date must be after the start date.');
    if(errs.length){$('#de2').innerHTML='<ul>'+errs.map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';return}
-   const rec={id:r.id||'D'+Date.now().toString(36),name:$('#dn').value.trim(),type:t,value:v,scope:scope(),categories:scope()=='categories'?picked():[],products:scope()=='products'?picked():[],start:$('#ds').value,end:$('#de').value,active:$('#da').checked};
+   const rec={id:r.id||'D'+Date.now().toString(36),name:$('#dn').value.trim(),type:t,value:v,scope:scope(),categories:scope()=='categories'?picked():[],products:scope()=='products'?picked():[],start:$('#ds').value,end:$('#de').value,msg:$('#dm').value.trim(),active:$('#da').checked};
    const l=get();put(r.id?l.map(x=>x.id==r.id?rec:x):l.concat(rec));closeM();draw()}}
  $('#nd').onclick=()=>form();
+ const rex=()=>{const m=+$('#rmin').value,p=+$('#rpc').value;$('#rex').textContent=m>0&&p>0&&p<100?`Example: an order of ${R(m)} gets ${R(Math.round(m*p/100))} off.`:''};rex();$('#rmin').oninput=$('#rpc').oninput=rex;
+ $('#rsv').onclick=async()=>{const m=Math.round(+$('#rmin').value),p=+$('#rpc').value;if(!(m>0)||!(p>0&&p<100)){dnote('Enter a minimum amount and a percentage between 1 and 99.',true);scrollTo({top:0,behavior:'smooth'});return}
+  const r0={on:$('#ron').checked,min:m,pct:p};store.set('gi-rule',r0);$('#rsv').disabled=true;if(syncKey()){const r=await apiConfig('PUT',{rule:r0});dnote(r.ok?'Saved. Customers get this at checkout the next time they open the website.':'Saved here, but the server could not store it, so customers may not get it yet.',!r.ok)}else dnote('Saved on this device only.',true);$('#rsv').disabled=false;scrollTo({top:0,behavior:'smooth'})};
+ $('#psv').onclick=async()=>{const p={on:$('#pon').checked,text:$('#ptx').value.trim()};store.set('gi-promo',p);$('#psv').disabled=true;if(syncKey()){const r=await apiConfig('PUT',{promo:p});dnote(r.ok?'':'Saved here, but the server could not store it, so customers may not see it yet.',!r.ok);if(r.ok){dnote('Saved. Customers will see it the next time they open the website.');}}else dnote('Saved on this device only.',true);$('#psv').disabled=false;scrollTo({top:0,behavior:'smooth'})};
+ apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;const j=r.json;let again=false;
+  if(Array.isArray(j.discounts)){if(JSON.stringify(j.discounts)!==JSON.stringify(get())){store.set('gi-discounts',j.discounts);again=true}}else if(get().length)apiConfig('PUT',{discounts:get()});
+  if(j.rule){const lr=store.get('gi-rule',null);if(JSON.stringify(j.rule)!==JSON.stringify(lr)){store.set('gi-rule',j.rule);$('#ron').checked=!!j.rule.on;$('#rmin').value=j.rule.min;$('#rpc').value=j.rule.pct;rex()}}else if(store.get('gi-rule',null))apiConfig('PUT',{rule:store.get('gi-rule',null)});
+  if(j.promo){const lp=store.get('gi-promo',null);if(JSON.stringify(j.promo)!==JSON.stringify(lp)){store.set('gi-promo',j.promo);$('#pon').checked=!!j.promo.on;$('#ptx').value=j.promo.text||''}}else if(store.get('gi-promo',null))apiConfig('PUT',{promo:store.get('gi-promo',null)});
+  if(again)draw()});
  pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const l=get();
   if(b.dataset.e)form(l.find(x=>x.id==b.dataset.e));
   else if(b.dataset.t){put(l.map(x=>x.id==b.dataset.t?Object.assign({},x,{active:!x.active}):x));draw()}
@@ -426,7 +485,7 @@ function sliderPage(){
  /* Explore by Collection images */
  {const CK2='gi-collimg',cget=()=>{try{return JSON.parse(localStorage.getItem(CK2)||'{}')||{}}catch(e){return{}}};
   const cput=o=>{try{localStorage.setItem(CK2,JSON.stringify(o));return true}catch(e){alert('The browser storage is full. Use a smaller image.');return false}};
-  const cats=CATS.filter(c=>c[0]!='home');
+  const cats=getCats().map(c=>[c.key,c.name,catFile(c.key)]);
   const toImg=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=900,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);let d=c.toDataURL('image/webp',.82);if(d.indexOf('data:image/webp')!==0)d=c.toDataURL('image/jpeg',.8);res(d)};im.onerror=()=>res(null);im.src=r.result};r.onerror=()=>res(null);r.readAsDataURL(f)});
   pg.insertAdjacentHTML('beforeend','<div class="cd2" id="cim"><h2>Explore by Collection images</h2><p class="mut">Choose the photo shown on each category card on the home page. Square photos work best (about <b>900 × 900 px</b>); they are shrunk to WebP automatically. If you do not choose one, the card uses the first product photo in that category.</p><div id="cil" style="margin-top:14px"></div></div>');
   const drawC=()=>{const o=cget();$('#cil').innerHTML=cats.map(c=>{const u=o[c[2]];return `<div class="srow"><div class="sth-w">${u?`<img class="sth" src="${u}" alt="">`:'<span class="sth sv"></span>'}</div><div class="sinfo"><b>${esc(c[1])}</b><span class="mut">${u?'Custom photo':'Automatic (first product photo)'}</span></div><div class="acts"><label class="btn2 o sm" style="cursor:pointer">${u?'Change':'Choose photo'}<input type="file" accept="image/*" hidden data-ci="${esc(c[2])}"></label> ${u?`<button class="btn2 o sm" data-cr="${esc(c[2])}">Remove</button>`:''}</div></div>`}).join('')};
@@ -445,7 +504,7 @@ function settingsPage(){
   if(!(k>=0)||!(o>=0)||$('#dk').value===''||$('#do').value===''){$('#me').innerHTML='<ul><li>Enter both delivery charges (0 or more).</li></ul>';return}
   $('#me').innerHTML='';store.set('gi-settings',{delivery:{karachi:k,other:o},bank:{title:$('#bt').value.trim(),bank:$('#bb').value.trim(),number:$('#bn').value.trim(),iban:$('#bi').value.trim(),note:$('#bx').value.trim()}});
   const m=$('#okm');m.style.display='block';m.textContent='Settings saved.';scrollTo(0,0)}}
-const RUN=()=>({dashboard,settings:settingsPage,slider:sliderPage,links:linksPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
+const RUN=()=>({dashboard,settings:settingsPage,slider:sliderPage,categories:categoriesPage,links:linksPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
 const SYNCP=['dashboard','orders','finance','invoices'].includes(PAGE);
 (async()=>{let st=null;if(SYNCP){try{st=await Promise.race([syncOrders(),new Promise(r=>setTimeout(()=>r({state:'offline'}),9000))])}catch(e){st={state:'offline'}}}
  RUN();

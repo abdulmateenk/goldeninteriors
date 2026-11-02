@@ -81,6 +81,11 @@ module.exports = async (req, res) => {
       const n = await cmd(['INCR', SEQ]);
       const id = 'GI-' + (FIRST_ID + Number(n));
       const now = new Date().toISOString();
+      // automatic order discount (same rule the storefront shows; the server works it out itself)
+      let rule = { on: true, min: 30000, pct: 10 };
+      try { const raw = await cmd(['GET', 'gi:config']); const r = raw && JSON.parse(raw).rule; if (r && r.min > 0 && r.pct > 0 && r.pct < 100) rule = r; } catch (e) {}
+      const subtotal = o.items.reduce((s, i) => s + i.price * i.qty, 0);
+      o.discount = rule.on && subtotal >= rule.min ? Math.round(subtotal * rule.pct / 100) : 0;
       const order = Object.assign({ id, date: pkDate(), status: 'Pending', source: 'website', createdAt: now, updatedAt: now }, o);
       await cmd(['HSET', HASH, id, JSON.stringify(order)]);
       if (cid) await cmd(['SET', 'gi:cid:' + cid, id, 'EX', 604800]);

@@ -10,13 +10,23 @@ const TODAY=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMont
 function dOf(x,p){let best=null;DR.forEach(r=>{if(!r.active||(r.start&&TODAY<r.start)||(r.end&&TODAY>r.end))return;
  const hit=r.scope=='products'?(r.products||[]).includes(x.id):(r.categories||[]).includes(x.c);if(!hit)return;
  const np=r.type=='percent'?Math.round(p*(1-r.value/100)):Math.max(1,Math.round(p-r.value));if(np<p&&(!best||np<best.p))best={p:np,r:r,off:r.type=='percent'?Math.round(r.value)+'%':'Rs. '+Math.round(r.value).toLocaleString('en-US')}});return best}
-const card=(x,i=0)=>`<a class="pc" href="product?id=${x.id}" style="animation-delay:${i*50}ms"><div class="im">${x.tag?`<span class="tag">${dOf(x,x.p)?'−'+dOf(x,x.p).off:x.tag}</span>`:(dOf(x,x.p)?`<span class="tag">−${dOf(x,x.p).off}</span>`:'')}${med(x)}</div><h3 title="${x.n}" class="${x.n.length>34?'lg':''}">${x.n}</h3><p class="pr">${x.from?'From ':''}${dOf(x,x.p)?R(dOf(x,x.p).p)+`<s>${R(x.p)}</s>`:R(x.p)+(x.o?`<s>${R(x.o)}</s>`:'')}</p></a>`;
+const card0=(x,i=0)=>`<a class="pc" href="product?id=${x.id}" style="animation-delay:${i*50}ms"><div class="im">${x.tag?`<span class="tag">${dOf(x,x.p)?'−'+dOf(x,x.p).off:x.tag}</span>`:(dOf(x,x.p)?`<span class="tag">−${dOf(x,x.p).off}</span>`:'')}${med(x)}</div><h3 title="${x.n}" class="${x.n.length>34?'lg':''}">${x.n}</h3><p class="pr">${x.from?'From ':''}${dOf(x,x.p)?R(dOf(x,x.p).p)+`<s>${R(x.p)}</s>`:R(x.p)+(x.o?`<s>${R(x.o)}</s>`:'')}</p></a>`;
 const med=(x,i,alt)=>{try{return med0(x,i,alt)}catch(e){return''}};
+const card=(x,i=0)=>{const d=dOf(x,x.p),now=d?d.p:x.p,was=d?x.p:(x.o&&x.o>x.p?x.o:0),save=was?was-now:0,sale=!!d||(x.tag=='Sale'&&was>0),tg=sale?'Sale':(x.tag||'');
+ let bn='';if(d){const r=d.r;let e='';if(r.end){const t=new Date(r.end+'T00:00:00');if(!isNaN(t))e=' · Ends '+t.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
+  bn=r.msg?'<div class="dn"><b>'+h2(r.msg)+'</b>'+(e?'<span>'+h2(e.replace(/^ · /,''))+'</span>':'')+'</div>':'<div class="dn"><b>'+h2(r.name||'Special offer')+'</b><span>'+h2(d.off)+' OFF'+e+'</span></div>'}
+ else if(PROMO.on&&PROMO.text)bn='<div class="dn"><b>'+h2(PROMO.text)+'</b></div>'
+ return '<a class="pc" href="product?id='+x.id+'" style="animation-delay:'+(i*50)+'ms"><div class="im">'+(tg?'<span class="tag'+(sale?' sale':'')+'">'+h2(tg)+'</span>':'')+med(x)+'</div>'+bn+'<h3 title="'+h2(x.n)+'">'+h2(x.n)+'</h3><p class="pr">'+(x.from?'<small>From </small>':'')+R(now)+'</p>'+(save>0?'<p class="was"><s>'+R(was)+'</s><span>Save '+R(save)+'</span></p>':'')+'</a>'};
 const cards=a=>a.map(x=>{try{return card(x)}catch(e){return''}}).join('');
 const MN=document.querySelector('main');const PG=MN.dataset.page;let KEY=MN.dataset.key||'';
 /* shared header, footer */
 $('#logo').src=IM.logo;$('#flogo').src=IM.logo;
-function nav(k){$('#catl').innerHTML=CATS.map(c=>`<li><a href="${c[2]}" ${c[0]==k?'class="on" aria-current="page"':''}>${c[1]}</a></li>`).join('')}
+function nav(k){const esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+ $('#catl').innerHTML=CATS.map(c=>{const sb=SUBS[c[0]]||[],a=`<a href="${c[2]}" ${c[0]==k?'class="on" aria-current="page"':''}>${esc2(c[1])}</a>`;
+  if(!sb.length)return`<li>${a}</li>`;
+  return`<li class="hs">${a}<button type="button" class="cx" aria-label="Show ${esc2(c[1])} menu" aria-expanded="false"><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button><ul class="dd">${sb.map(s=>`<li><a href="${esc2(s.url)}">${esc2(s.name)}</a></li>`).join('')}</ul></li>`}).join('')}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.cats .cx');$$('.cats .hs.open').forEach(l=>{if(!b||l!==b.parentNode){l.classList.remove('open');const x=l.querySelector('.cx');if(x)x.setAttribute('aria-expanded','false')}});if(b){const l=b.parentNode,o=l.classList.toggle('open');b.setAttribute('aria-expanded',o)}})
+if(PG=='list'&&!KEY)KEY=(new URLSearchParams(location.search).get('c')||'').replace(/[^a-z0-9-]/gi,'');
 nav(PG=='home'?'home':KEY);
 
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});$$('.rv').forEach(el=>io.observe(el));
@@ -104,8 +114,8 @@ if(PG=='home'){
  const onHome=k=>{const ok=x=>(x.show||[]).includes(k)||(k=='sale'&&dOf(x,x.p));return P.filter(x=>x.custom&&ok(x)).reverse().concat(P.filter(x=>!x.custom&&ok(x)))};
  try{$('#g-new').innerHTML=cards(onHome('new').slice(0,8))}catch(e){console.error('new',e)}try{$('#g-clocks').innerHTML=cards(onHome('clocks').slice(0,8))}catch(e){console.error('clocks',e)}
  try{[['featured','g-feat']].forEach(([k,g])=>{const l=onHome(k).slice(0,8);if(l.length){$('#'+g).innerHTML=cards(l)}else $('#'+g).closest('section').style.display='none'})}catch(e){console.error('featured row',e)}
- const COLL=CATS.filter(c=>c[0]!='home').map(c=>[c[1],c[0],c[0]=='clocks'?'ck3':c[0]=='new'?'s1':'',c[2]]);
- try{$('#ct').innerHTML=COLL.map(c=>{const pp=c[2]?null:P.find(y=>y.c==c[0]);const OV=(()=>{try{return JSON.parse(localStorage.getItem('gi-collimg')||'{}')}catch(e){return{}}})();return `<a class="cd" href="${c[3]}" aria-label="${c[0]}">${OV[c[3]]?`<img src="${OV[c[3]]}" alt="">`:c[2]?`<img src="${IM[c[2]]}" alt="">`:pp?`<div class="cs" style="padding:0">${med(pp,0,'')}</div>`:`<div class="cs ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z" fill="none" stroke="#A67C2E" stroke-width=".8"/><path d="M12 8l4 4-4 4-4-4z" fill="none" stroke="#A67C2E" stroke-width=".8"/></svg></div>`}<span>${c[0]}<i>Shop →</i></span></a>`}).join('')+onHome('explore').map(x=>`<a class="cd" href="product?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('')}catch(e){console.error('collections',e)}
+ const COLL=CATS.filter(c=>c[0]!='home').map(c=>[c[1],c[0],c[0]=='clocks'?'ck3':c[0]=='new'?'s1':'',c[2],c[3]||c[1]]);
+ try{$('#ct').innerHTML=COLL.map(c=>{const pp=c[2]?null:P.find(y=>y.c==c[4]);const OV=(()=>{try{return JSON.parse(localStorage.getItem('gi-collimg')||'{}')}catch(e){return{}}})();return `<a class="cd" href="${c[3]}" aria-label="${c[0]}">${OV[c[3]]?`<img src="${OV[c[3]]}" alt="">`:c[2]?`<img src="${IM[c[2]]}" alt="">`:pp?`<div class="cs" style="padding:0">${med(pp,0,'')}</div>`:`<div class="cs ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z" fill="none" stroke="#A67C2E" stroke-width=".8"/><path d="M12 8l4 4-4 4-4-4z" fill="none" stroke="#A67C2E" stroke-width=".8"/></svg></div>`}<span>${c[0]}<i>Shop →</i></span></a>`}).join('')+onHome('explore').map(x=>`<a class="cd" href="product?id=${x.id}" aria-label="${x.n}"><div class="cs" style="padding:0">${med(x,0,'')}</div><span>${x.n}<i>Shop →</i></span></a>`).join('')}catch(e){console.error('collections',e)}
  try{let SL=null;try{SL=JSON.parse(localStorage.getItem('gi-slides')||'null')}catch(e){}
  if(!Array.isArray(SL))SL=SLD_DEF;SL=SL.filter(z=>z&&typeof z=='object');SL=SL.map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z);SL=SL.filter(z=>z.active!==false);
  const sImg=v=>v&&v.startsWith('IM:')?IM[v.slice(3)]:(v||'');
@@ -142,7 +152,7 @@ if(PG=='home'){
  try{[['#t-v','Vases','Elegant Vases & more'],['#t-f','Figurines','Statement Pieces']].forEach(([s,c,t])=>{const p=P.find(x=>x.c==c);$(s).innerHTML=(p?med(p,0,''):`<img src="${IM.deco}" alt="">`)+`<span>${t}<i>Shop ${c} →</i></span>`})}catch(e){console.error('tiles',e)}
 }
 /* CATEGORY PAGE */
-if(PG=='list'){const L=LIST[KEY];$('#lt').textContent=L[0];$('#ls').textContent=L[1];const a=L[2]();
+if(PG=='list'){const L=LIST[KEY]||['Collection not found','This collection is not available.',()=>[]];document.title=L[0]+' | Golden Interiors';$('#lt').textContent=L[0];$('#ls').textContent=L[1];const a=L[2]();
  $('#g-lst').innerHTML=a.length?cards(a):'<div class="empty"><h2>New pieces are on their way</h2><p class="mut">We are adding products to this collection. Browse our other collections in the meantime.</p><a class="btn" href="new-arrival" style="display:inline-block;margin-top:18px">Shop New Arrival</a></div>';
  $('#chips').innerHTML=CATS.filter(c=>c[0]!='home').map(c=>`<a href="${c[2]}" ${c[0]==KEY?'class="on"':''}>${c[1]}</a>`).join('');
  $('#cr').textContent=L[0]}
@@ -213,7 +223,7 @@ if(PG=='product'){(async()=>{
  const hr=$('#hrt');hr.setAttribute('aria-pressed',wl().includes(x.id));
  hr.onclick=()=>{let l=wl();const on=!l.includes(x.id);l=on?l.concat(x.id):l.filter(k=>k!=x.id);try{localStorage.setItem('gi-wish',JSON.stringify(l))}catch(e){}hr.setAttribute('aria-pressed',on);GI.wishlist(x.id,on);toast(on?'Saved to your wishlist':'Removed from your wishlist')};
  $('#rel').innerHTML=cards(P.filter(y=>y.id!=x.id&&y.c==x.category).concat(P.filter(y=>y.id!=x.id&&y.c!=x.category)).slice(0,4));
- $('#morecat').innerHTML=CATS.filter(c=>c[0]!='home'&&c[0]!=KEY).map(c=>({c,p:P.find(y=>y.c==c[1])||P.find(y=>(SLUG[y.c]||'')==c[0])})).sort((a,b)=>!!b.p-!!a.p).slice(0,4).map((r,i)=>`<a href="${r.c[2]}" aria-label="${h2(r.c[1])}">${r.p?med(r.p,0,''):`<img src="${IM[['s1','s2','s3','deco'][i%4]]}" alt="">`}<span>${h2(r.c[1])}</span></a>`).join('');
+ $('#morecat').innerHTML=CATS.filter(c=>c[0]!='home'&&c[0]!=KEY).map(c=>({c,p:P.find(y=>y.c==(c[3]||c[1]))||P.find(y=>(SLUG[y.c]||'')==c[0])})).sort((a,b)=>!!b.p-!!a.p).slice(0,4).map((r,i)=>`<a href="${r.c[2]}" aria-label="${h2(r.c[1])}">${r.p?med(r.p,0,''):`<img src="${IM[['s1','s2','s3','deco'][i%4]]}" alt="">`}<span>${h2(r.c[1])}</span></a>`).join('');
  /* SEO: description and product structured data */
  setMeta('description',(x.name+'. '+(x.description||'')).slice(0,155));
  {const u='https://www.goldeninteriors.pk/product?id='+encodeURIComponent(x.id);let cl=document.querySelector('link[rel=canonical]');if(!cl){cl=document.createElement('link');cl.rel='canonical';document.head.appendChild(cl)}cl.href=u;
@@ -250,7 +260,10 @@ if(PG=='checkout')(function(){
    html+=s});
   box.innerHTML=html;
   try{$('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':'– '+(c.trim().replace(/\b\w/g,m=>m.toUpperCase()))}catch(e){}
-  try{$('#s-tot').textContent=R(sub()+(f||0))}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
+  try{const sb=sub(),dc=ruleOff(sb),row=$('#s-dr'),ht=$('#s-hint');
+   if(row){row.style.display=dc>0?'':'none';if(dc>0){$('#s-dn').textContent='Discount ('+RULE.pct+'% off orders of '+R(RULE.min)+' or more)';$('#s-dv').textContent='− '+R(dc)}}
+   if(ht){const need=RULE.min-sb;ht.style.display=RULE.on&&need>0&&sb>0?'block':'none';if(RULE.on&&need>0)ht.textContent='Add '+R(need)+' more to get '+RULE.pct+'% off your order.'}
+   $('#s-tot').textContent=R(sb-dc+(f||0))}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
  function showBank(){const b=document.querySelector('input[name=pay]:checked').value=='Bank transfer';$('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked))}
  function init(){
   if(!rows().length){$('#cg').style.display='none';$('#empty').style.display='block';return}
@@ -274,19 +287,19 @@ if(PG=='checkout')(function(){
   const pay=document.querySelector('input[name=pay]:checked').value,f=fee(v('city')),items=rows().map(({l,x})=>({name:x.n+(vname(l)?' – '+vname(l):''),qty:l.q,price:l.price,sku:l.sku,id:l.id}));
   const num=a=>{try{return JSON.parse(localStorage.getItem(a)||'[]')}catch(e){return[]}};
   const ids=num('gi-orders').concat(num('gi-orders-new')).map(o=>parseInt(String(o.id).replace(/\D/g,''))||0);
-  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
+  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,discount:ruleOff(items.reduce((a,i)=>a+i.price*i.qty,0)),payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
   $('#place').disabled=true;$('#place2').disabled=true;$('#place').textContent='Placing order…';
   {const sv=await GI.placeOrder(order);if(sv&&sv.id)order.id=sv.id;else{try{const pq=JSON.parse(localStorage.getItem('gi-pending')||'[]');pq.push(order);localStorage.setItem('gi-pending',JSON.stringify(pq))}catch(e){}}}
   const mailP=GI.emailOrder(order);
   try{const nw=num('gi-orders-new');nw.unshift(order);localStorage.setItem('gi-orders-new',JSON.stringify(nw))}catch(e){}
   /* take the quantities out of the stock of products added from the admin area */
   try{const pr=num('gi-products');let ch=false;items.forEach(i=>{const c=pr.find(p=>p.id==i.id);if(!c||!c.variants)return;const vv=c.variants.find(w=>w.sku==i.sku);if(vv){vv.stock=Math.max(0,vv.stock-i.qty);c.stock=c.variants.reduce((a,w)=>a+w.stock,0);ch=true}});if(ch)localStorage.setItem('gi-products',JSON.stringify(pr))}catch(e){}
-  const tot=items.reduce((a,i)=>a+i.price*i.qty,0)+f;
+  const tot=items.reduce((a,i)=>a+i.price*i.qty,0)-(order.discount||0)+f;
   cart=[];save();renderC();
   $('#cg').style.display='none';const d=$('#done');d.style.display='block';
   d.innerHTML=`<div class="ok3"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.500"/></svg></div><h2>Thank you, ${h2(order.customer.split(' ')[0])}!</h2><p class="mut">Your order <b>${order.id}</b> has been placed. It will be processed and delivered within 3 to 5 days. We will call you on ${h2(order.phone)} to confirm.</p>
   <div class="cbx" style="text-align:left;margin-top:26px"><h3>Order summary</h3>${items.map(i=>`<div class="si" style="grid-template-columns:1fr auto"><div class="sn"><span>${h2(i.name)}</span><small>Qty ${i.qty}</small></div><span class="sx">${R(i.price*i.qty)}</span></div>`).join('')}
-  <div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div><div class="tl big"><span>Sub-Total</span><span>${R(tot)}</span></div>
+  ${order.discount>0?`<div class="tl" style="color:#2e7d32"><span>Discount (${RULE.pct}% off)</span><span>− ${R(order.discount)}</span></div>`:''}<div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div><div class="tl big"><span>Sub-Total</span><span>${R(tot)}</span></div>
   <p class="mut" style="margin-top:12px">Payment: <b>${pay}</b><br>Delivering to: ${h2(order.address)}, ${h2(order.city)}</p>
   ${pay=='Bank transfer'?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(tot)} to</h4>${bankHtml()}</div>`:''}</div>
   <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="/" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
@@ -323,3 +336,13 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
 (async function(){try{const q=JSON.parse(localStorage.getItem('gi-pending')||'[]');if(!q.length||!/^https?:$/.test(location.protocol))return;const keep=[];
  for(const o of q){let done=false;try{const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});if(r.ok||(r.status>=400&&r.status<500&&r.status!=429))done=true}catch(e){}if(!done)keep.push(o)}
  localStorage.setItem('gi-pending',JSON.stringify(keep))}catch(e){}})();
+
+/* pick up changes made in the admin (header categories, discounts, store-wide message) from the server */
+(async function(){try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(!j)return;let ch=false;
+ const cats=j.cats?JSON.stringify(j.cats):null;if((localStorage.getItem('gi-cats')||null)!==cats){if(cats)localStorage.setItem('gi-cats',cats);else localStorage.removeItem('gi-cats');ch=true}
+ [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
+ if(ch&&!sessionStorage.getItem('gi-cfgr')){sessionStorage.setItem('gi-cfgr','1');location.reload()}}catch(e){}})();
+
+(function(){const sr=document.getElementById('sr'),sb=document.getElementById('sb');if(!sr||!sb)return;let y0=0,last=0;
+ sb.addEventListener('click',()=>{setTimeout(()=>{y0=window.scrollY;last=y0},0)});
+ addEventListener('scroll',()=>{if(innerWidth>860||!sr.classList.contains('o'))return;const y=window.scrollY;if(y-y0>60&&y>last){sr.classList.remove('o');try{document.getElementById('si').blur()}catch(e){}}last=y},{passive:true})})();
