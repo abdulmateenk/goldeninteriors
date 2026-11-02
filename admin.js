@@ -19,8 +19,10 @@ const baseCats=()=>(typeof BASECATS!=='undefined'?BASECATS:CATS).filter(c=>c[0]!
 const defCats=()=>baseCats().map(c=>({key:c[0],name:c[1],value:CVAL[c[0]]!=null?CVAL[c[0]]:c[1],sub:[]}));
 function getCats(){try{const a=JSON.parse(localStorage.getItem('gi-cats')||'null');if(Array.isArray(a)&&a.length)return a}catch(e){}return defCats()}
 const catFile=k=>{const b=baseCats().find(c=>c[0]==k);return b?b[2]:'category?c='+k};
+const alsoBox=(id,sel,prim)=>`<div class="f w"><span>Also show in these categories <em class="mut" style="font-style:normal">(optional)</em></span><div class="lp" id="${id}" style="margin-top:8px">${catVals().map(v=>`<label class="cc"><input type="checkbox" value="${esc(v)}" ${(sel||[]).includes(v)?'checked':''}> ${esc(catLbl(v))}</label>`).join('')}</div></div>`;
 const catVals=()=>getCats().filter(c=>c.value).map(c=>c.value);
 const catLbl=v=>{const c=getCats().find(c=>c.value==v);return c?c.name:v};
+async function apiShot(id){if(!NET)return null;try{const k=syncKey(),r=await fetch('/api/orders?shot='+encodeURIComponent(id),{headers:k?{'x-admin-key':k}:{},cache:'no-store'});if(!r.ok)return null;const j=await r.json();return j&&j.shot||null}catch(e){return null}}
 async function apiConfig(method,body,key){if(!NET)return{status:0,ok:false,json:null};const k=key||syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
  try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/config',{method,headers:h,body:body?JSON.stringify(body):undefined,signal:c.signal,cache:'no-store'});let j=null;try{j=await r.json()}catch(e){}return{status:r.status,ok:r.ok,json:j}}catch(e){return{status:0,ok:false,json:null}}finally{clearTimeout(t)}}
 const iso=d=>d.toISOString().slice(0,10);
@@ -42,7 +44,7 @@ if(PAGE=='login'){
  return}
 if(!store.get('gi-admin',null)){location.replace('login');return}
 /* ---------- data ---------- */
-const STATUS=['Pending','Processing','Shipped','Delivered','Cancelled'];
+const STATUS=['Pending','Processing','Shipped','Delivered','Returned','Cancelled'];
 const SP=[['two-tone-floor-vase','Two-Tone Glazed Floor Vase','Vases',24500,8],['dried-pampas-stems','Dried Pampas Stems','Decor & Ornaments',3500,40],['ivory-floor-vase','Ivory Sculpted Floor Vase','Vases',18500,5],['chevron-vase-trio','Chevron Vase Trio','Vases',38000,3],['chevron-floor-vase','Chevron Floor Vase','Vases',16500,9],['helix-floor-lamp','Helix LED Floor Lamp','Decor & Ornaments',29500,12],['tub-armchair','Linen Tub Armchair','Decor & Ornaments',46000,4],['woven-stool','Woven Rattan Stool','Decor & Ornaments',12500,15],['aurum-round-clock','Birch Round Wall Clock','Wall Clocks',14500,22],['noir-minimal-clock','Linea Minimal Wall Clock','Wall Clocks',11500,18],['walnut-ring-clock','Walnut Ring Clock','Wall Clocks',13500,14],];
 const LP=[['new','New Arrivals'],['featured','Featured'],['explore','Explore by Collection'],['clocks','Wall Clocks']];
 const lpBox=(sel,id)=>`<div class="lp" id="${id}">${LP.map(([k,t])=>`<label class="cc"><input type="checkbox" value="${k}" ${sel.includes(k)?'checked':''}> ${t}</label>`).join('')}</div>`;
@@ -93,7 +95,7 @@ const closeM=()=>{modal.classList.remove('o');modal.innerHTML=''};
 modal.onclick=e=>{if(e.target==modal)closeM()};addEventListener('keydown',e=>{if(e.key=='Escape')closeM()});
 const pill=s=>`<span class="pill s-${s}">${s}</span>`;
 /* ---------- dashboard ---------- */
-function dashboard(){const o=getOrders(),f=fin(),live=o.filter(x=>x.status!='Cancelled');
+function dashboard(){const o=getOrders(),f=fin(),live=o.filter(x=>x.status!='Cancelled'&&x.status!='Returned');
  const pend=o.filter(x=>x.status=='Pending'||x.status=='Processing').length;
  const days=[6,5,4,3,2,1,0].map(n=>{const d=daysAgo(n);return{d,l:new Date(d+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'}),v:live.filter(x=>x.date==d).reduce((a,x)=>a+total(x),0)}});
  const mx=Math.max(1,...days.map(d=>d.v));
@@ -120,7 +122,8 @@ function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Al
    let ok=true;if(syncKey()){const r0=await apiOrders('DELETE',{id});ok=r0.ok||r0.status==404;if(!ok){try{const q=JSON.parse(localStorage.getItem('gi-deleted')||'[]');q.push(id);localStorage.setItem('gi-deleted',JSON.stringify(q))}catch(e2){}}}
    closeM();draw();if(!ok)alert('Order removed here, but the server could not be reached. It will be removed from the server automatically next time you open the admin.')};return}
   const b=e.target.closest('[data-v]');if(!b)return;const x=getOrders().find(o=>o.id==b.dataset.v);
-  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}${x.tracking?' · Tracking ID: <b>'+esc(x.tracking)+'</b>':''}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}${x.discount>0?`<tr><td>Discount</td><td></td><td class="r">− ${R(x.discount)}</td></tr>`:''}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr></tbody></table><p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM};
+  openM(`<h2>${x.id} ${pill(x.status)}</h2><p class="mut">${fdate(x.date)} · ${esc(x.payment)}${x.tracking?' · Tracking ID: <b>'+esc(x.tracking)+'</b>':''}</p><p style="margin:12px 0"><b>${esc(x.customer)}</b><br>${esc(x.phone)}${x.email?'<br>'+esc(x.email):''}<br>${esc(x.address)}</p>${x.notes?`<p style="margin:0 0 12px"><span class="mut">Order notes:</span> ${esc(x.notes)}</p>`:''}<table class="t"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th></tr></thead><tbody>${x.items.map(i=>`<tr><td><div class="oit">${itemImg(i)}<span>${esc(i.name)}</span></div></td><td class="r">${i.qty}</td><td class="r">${R(i.price*i.qty)}</td></tr>`).join('')}${x.discount>0?`<tr><td>Discount</td><td></td><td class="r">− ${R(x.discount)}</td></tr>`:''}<tr><td>Delivery</td><td></td><td class="r">${R(x.delivery)}</td></tr><tr><td><b>Total</b></td><td></td><td class="r"><b>${R(total(x))}</b></td></tr>${x.advance>0?`<tr><td>Advance to be paid now</td><td></td><td class="r">${R(x.advance)}</td></tr><tr><td><b>Balance on delivery (COD)</b></td><td></td><td class="r"><b>${R(Math.max(0,total(x)-x.advance))}</b></td></tr>`:''}</tbody></table>${x.hasShot?'<div id="shw" style="margin-top:14px"><b>Payment screenshot</b><div class="mut" id="shs" style="margin-top:6px">Loading…</div></div>':(x.payment=="Bank transfer"||x.advance>0?'<p class="mut" style="margin-top:14px">No payment screenshot uploaded.</p>':'')}<p style="margin-top:16px;display:flex;gap:10px"><a class="btn2" href="invoices?order=${x.id}">Open invoice</a><button class="btn2 o" id="cm">Close</button></p>`);$('#cm').onclick=closeM;
+  if(x.hasShot)apiShot(x.id).then(d=>{const el=$('#shs');if(!el)return;el.innerHTML=d?`<a href="${d}" target="_blank" rel="noopener"><img src="${d}" alt="Payment screenshot" style="max-width:100%;max-height:420px;border:1px solid #ddd;border-radius:6px"></a>`:'Could not load the screenshot.'})};
  $('#no').onclick=()=>{const ps=allProducts();
   openM(`<h2>New order</h2><form id="nf" novalidate class="fg2"><label class="f">Customer name<input id="nc"><span class="e"></span></label><label class="f">Phone<input id="np" inputmode="tel"><span class="e"></span></label><label class="f">City<input id="ni"></label><label class="f">Payment<select id="ny"><option>Cash on delivery</option><option>Bank transfer</option><option>Card</option></select></label><label class="f w">Address<input id="na"></label><label class="f">Product<select id="nq">${ps.map(p=>`<option value="${p.id}">${esc(p.name)} (${R(p.price)})</option>`).join('')}</select></label><label class="f">Quantity<input id="nn" type="number" min="1" value="1"></label><div class="w" style="display:flex;gap:10px"><button class="btn2" type="submit">Create order</button><button class="btn2 o" type="button" id="cm">Cancel</button></div></form>`);
   $('#cm').onclick=closeM;
@@ -217,7 +220,7 @@ function addPage(banner){
  pg.innerHTML=`<div class="ok2" id="okm" role="status"></div><form id="pf" novalidate>
  <div class="cd2" style="margin-top:0"><h2>1. Product details</h2><div class="fg2">
  <label class="f w">Product name<input id="pn"><span class="e"></span></label>
- <label class="f">Category<select id="pc">${CATSL.map(c=>`<option value="${esc(c)}">${esc(catLbl(c))}</option>`).join('')}</select></label>
+ <label class="f">Category<select id="pc">${CATSL.map(c=>`<option value="${esc(c)}">${esc(catLbl(c))}</option>`).join('')}</select></label>${alsoBox('pal',[])}
  <label class="f">Tag<select id="pt"><option value="">None</option><option>New</option><option>Sale</option></select></label>
  <label class="f">SKU prefix<input id="sk" placeholder="Auto from the name"></label><div></div>
  <label class="f w">Description<textarea id="pd" rows="3"></textarea><span class="e"></span></label></div></div>
@@ -279,7 +282,7 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
  $('#pn').oninput=prev;$('#sk').oninput=prev;
  /* lists */
  const EID=new URLSearchParams(location.search).get('edit'),EP=EID&&getCustom().find(c=>c.id==EID);
- if(EP){$('#pn').value=EP.name;$('#pc').value=EP.category;$('#pt').value=EP.tag||'';$('#pd').value=EP.description||'';$('#pm').value=EP.material||'';$('#pr').value=EP.care||'';
+ if(EP){$('#pn').value=EP.name;$('#pc').value=EP.category;$$('#pal input').forEach(i=>{i.checked=(EP.also||[]).includes(i.value)});$('#pt').value=EP.tag||'';$('#pd').value=EP.description||'';$('#pm').value=EP.material||'';$('#pr').value=EP.care||'';
   imgs=(EP.images||[]).slice();$('#dr').innerHTML=(EP.dimensions||[]).map(d=>dimRow(d[0],d[1])).join('')||dimRow();
   Object.entries(EP.sizeDims||{}).forEach(([z,v])=>{const r=$('#sd tr[data-z="'+z+'"]');if(r){r.querySelector('[data-d=height]').value=v.height||'';r.querySelector('[data-d=width]').value=v.width||''}});
   const vs=EP.variants&&EP.variants.length?EP.variants:[{sku:'',size:'',colour:'',price:EP.price,compareAt:EP.compareAt,stock:EP.stock||0}];
@@ -305,7 +308,7 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
   if(errs.length){$('#me').scrollIntoView({block:'center'});return}
   const name=$('#pn').value.trim(),id=EP?EP.id:name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now().toString(36);
   const low=V.reduce((a,v)=>v.price<a.price?v:a,V[0]);
-  const prod={id,name,category:$('#pc').value,price:low.price,compareAt:low.compareAt,tag:$('#pt').value,stock:V.reduce((a,v)=>a+v.stock,0),description:$('#pd').value.trim(),images:imgs.slice(),variants:V.map(v=>({sku:v.sku,size:v.size,colour:v.colour,swatch:v.swatch,price:v.price,compareAt:v.compareAt,stock:v.stock,sizeImage:v.sizeImage,colourImage:v.colourImage})),showOn:$$('#lp input:checked').map(i=>i.value),sizeDims:(()=>{const o={};$$('#sd tr').forEach(r=>{const h=r.querySelector('[data-d=height]').value.trim(),w=r.querySelector('[data-d=width]').value.trim();if(h||w)o[r.dataset.z]={height:h,width:w}});return o})(),dimensions:$$('#dr .row').map(r=>[r.children[0].value.trim(),r.children[1].value.trim()]).filter(d=>d[0]&&d[1]),material:$('#pm').value.trim(),care:$('#pr').value.trim()};
+  const prod={id,name,category:$('#pc').value,also:$$('#pal input:checked').map(i=>i.value).filter(v=>v!==$('#pc').value),price:low.price,compareAt:low.compareAt,tag:$('#pt').value,stock:V.reduce((a,v)=>a+v.stock,0),description:$('#pd').value.trim(),images:imgs.slice(),variants:V.map(v=>({sku:v.sku,size:v.size,colour:v.colour,swatch:v.swatch,price:v.price,compareAt:v.compareAt,stock:v.stock,sizeImage:v.sizeImage,colourImage:v.colourImage})),showOn:$$('#lp input:checked').map(i=>i.value),sizeDims:(()=>{const o={};$$('#sd tr').forEach(r=>{const h=r.querySelector('[data-d=height]').value.trim(),w=r.querySelector('[data-d=width]').value.trim();if(h||w)o[r.dataset.z]={height:h,width:w}});return o})(),dimensions:$$('#dr .row').map(r=>[r.children[0].value.trim(),r.children[1].value.trim()]).filter(d=>d[0]&&d[1]),material:$('#pm').value.trim(),care:$('#pr').value.trim()};
   if(!store.set('gi-products',EP?getCustom().map(c=>c.id==EP.id?prod:c):getCustom().concat(prod))){alert('The browser storage is full. Remove a photo or an older product and try again.');return}
   if(EP){location.href='products?saved='+encodeURIComponent(name);return}
   addPage(`Saved “${esc(name)}” with ${V.length} variants. <a href="product?id=${id}">View it on the store</a>`);scrollTo(0,0)}}
@@ -329,7 +332,7 @@ function productsPage(){
   openM(`<h2>Edit product</h2><form id="ef"><div class="fg2"><label class="f w">Name<input id="en" value="${esc(g('name',cp.n))}"></label>
   <label class="f">Price (Rs.)<input id="ep" type="number" min="1" value="${g('price',cp.p)}"></label><label class="f">Compare price (Rs.)<input id="eo" type="number" min="0" value="${g('compareAt',cp.o)||''}"></label>
   <label class="f">Stock<input id="es" type="number" min="0" value="${b.stock}"></label><label class="f">Tag<select id="et">${['','New','Sale'].map(t=>`<option value="${t}" ${g('tag',cp.tag||'')==t?'selected':''}>${t||'None'}</option>`).join('')}</select></label>
-  <div class="f w"><span>Show on the landing page</span>${lpBox(g('showOn',(NA.includes(cp)?['new']:[]).concat(CK.includes(cp)?['clocks']:[],cp.o?['sale']:[])),'elp')}</div><label class="f w">Description<textarea id="ed" rows="3">${esc(g('description',cp.d||''))}</textarea></label>
+  ${alsoBox('eal',g('also',cp.cs||[]))}<div class="f w"><span>Show on the landing page</span>${lpBox(g('showOn',(NA.includes(cp)?['new']:[]).concat(CK.includes(cp)?['clocks']:[],cp.o?['sale']:[])),'elp')}</div><label class="f w">Description<textarea id="ed" rows="3">${esc(g('description',cp.d||''))}</textarea></label>
   <label class="f w">Material<textarea id="em2" rows="2">${esc(g('material',cp.mat||''))}</textarea></label>
   <label class="f w">Dimensions (one per line, “Label: value”)<textarea id="edm" rows="4">${esc((g('dimensions',cp.dim||[])).map(d=>d[0]+': '+d[1]).join('\n'))}</textarea></label></div>
   <div class="er2" id="ee" role="alert"></div><div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save changes</button><button class="btn2 o" type="button" id="ec">Cancel</button></div></form>`);
@@ -337,7 +340,7 @@ function productsPage(){
   $('#ef').onsubmit=e=>{e.preventDefault();const pr=+$('#ep').value,cm=+$('#eo').value||null;
    if(!$('#en').value.trim()||!(pr>0)){$('#ee').textContent='Enter a name and a price.';return}
    if(cm&&cm<=pr){$('#ee').textContent='The compare price must be higher than the price.';return}
-   const ov=getOv();ov[id]=Object.assign({},ov[id],{name:$('#en').value.trim(),price:pr,compareAt:cm,stock:Math.max(0,parseInt($('#es').value)||0),tag:$('#et').value,description:$('#ed').value.trim(),material:$('#em2').value.trim(),showOn:$$('#elp input:checked').map(i=>i.value),dimensions:$('#edm').value.split('\n').map(l=>{const i=l.indexOf(':');return i>0?[l.slice(0,i).trim(),l.slice(i+1).trim()]:null}).filter(d=>d&&d[0]&&d[1])});
+   const ov=getOv();ov[id]=Object.assign({},ov[id],{name:$('#en').value.trim(),price:pr,compareAt:cm,stock:Math.max(0,parseInt($('#es').value)||0),tag:$('#et').value,description:$('#ed').value.trim(),material:$('#em2').value.trim(),also:$$('#eal input:checked').map(i=>i.value).filter(v=>v!==cp.c),showOn:$$('#elp input:checked').map(i=>i.value),dimensions:$('#edm').value.split('\n').map(l=>{const i=l.indexOf(':');return i>0?[l.slice(0,i).trim(),l.slice(i+1).trim()]:null}).filter(d=>d&&d[0]&&d[1])});
    store.set('gi-overrides',ov);closeM();draw()}};
  pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.e){const c=getCustom().find(x=>x.id==b.dataset.e);if(c)location.href='add-product?edit='+encodeURIComponent(c.id);else editBuilt(b.dataset.e)}
@@ -497,13 +500,23 @@ function settingsPage(){
  const S=store.get('gi-settings',{}),B=Object.assign({title:'',bank:'',number:'',iban:'',note:''},S.bank||{}),D=Object.assign({karachi:400,other:600},S.delivery||{});
  pg.innerHTML=`<div class="ok2" id="okm" role="status"></div><form id="sf3" novalidate><div class="cd2" style="margin-top:0"><h2>Delivery charges</h2><p class="mut">Charged at checkout. Orders to Karachi use the first amount, every other city uses the second.</p>
  <div class="fg2" style="margin-top:12px"><label class="f">Karachi (Rs.)<input id="dk" type="number" min="0" value="${D.karachi}"></label><label class="f">Out of city (Rs.)<input id="do" type="number" min="0" value="${D.other}"></label></div></div>
+ <div class="cd2"><h2>Cash on delivery advance</h2><p class="mut">Customers paying cash on delivery to a city outside Karachi must pay this amount in advance (shown at checkout with your bank details and a place to upload the payment screenshot). The rest is collected on delivery. Enter 0 to turn it off.</p>
+ <div class="fg2" style="margin-top:12px"><label class="f">Advance for out-of-city COD (Rs.)<input id="ad" type="number" min="0" value="${S.advance!=null?S.advance:500}"></label></div></div>
+ <div class="cd2"><h2>Order emails</h2><p class="mut">Every new order is emailed to this address, together with the customer's payment screenshot. The customer also gets a confirmation email if they entered their email address.</p>
+ <div class="fg2" style="margin-top:12px"><label class="f w">Send new-order emails to<input id="nm" type="email" value="${esc(S.notifyTo||'')}" placeholder="you@example.com"></label></div>
+ <p class="mut" style="margin-top:8px;font-size:12px">Sending also needs the Gmail sender set up once on the server (MAIL_USER and MAIL_PASS in Vercel).</p></div>
  <div class="cd2"><h2>Bank transfer details</h2><p class="mut">Customers see these only when they choose Bank transfer at checkout. Leave empty to show a short message instead.</p>
  <div class="fg2" style="margin-top:12px"><label class="f">Account title<input id="bt" value="${esc(B.title)}"></label><label class="f">Bank name<input id="bb" value="${esc(B.bank)}"></label><label class="f">Account number<input id="bn" value="${esc(B.number)}"></label><label class="f">IBAN<input id="bi" value="${esc(B.iban)}"></label><label class="f w">Extra instructions (optional)<textarea id="bx" rows="2">${esc(B.note)}</textarea></label></div></div>
  <div class="er2" id="me" role="alert"></div><div style="margin-top:18px"><button class="btn2" type="submit">Save settings</button></div></form>`;
  $('#sf3').onsubmit=e=>{e.preventDefault();const k=+$('#dk').value,o=+$('#do').value;
   if(!(k>=0)||!(o>=0)||$('#dk').value===''||$('#do').value===''){$('#me').innerHTML='<ul><li>Enter both delivery charges (0 or more).</li></ul>';return}
-  $('#me').innerHTML='';store.set('gi-settings',{delivery:{karachi:k,other:o},bank:{title:$('#bt').value.trim(),bank:$('#bb').value.trim(),number:$('#bn').value.trim(),iban:$('#bi').value.trim(),note:$('#bx').value.trim()}});
-  const m=$('#okm');m.style.display='block';m.textContent='Settings saved.';scrollTo(0,0)}}
+  const ad=+$('#ad').value,nm=$('#nm').value.trim();if($('#ad').value===''||!(ad>=0)){$('#me').innerHTML='<ul><li>Enter the advance amount (0 or more).</li></ul>';return}
+  if(nm&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nm)){$('#me').innerHTML='<ul><li>Enter a valid email address for order emails, or leave it empty.</li></ul>';return}
+  $('#me').innerHTML='';const val={delivery:{karachi:k,other:o},bank:{title:$('#bt').value.trim(),bank:$('#bb').value.trim(),number:$('#bn').value.trim(),iban:$('#bi').value.trim(),note:$('#bx').value.trim()},advance:Math.round(ad),notifyTo:nm};store.set('gi-settings',val);
+  const m=$('#okm');m.style.display='block';m.style.background='';m.style.color='';m.textContent='Settings saved.';scrollTo(0,0);
+  if(syncKey())apiConfig('PUT',{settings:val}).then(r=>{m.textContent=r.ok?'Settings saved. Customers will see them the next time they open the website.':'Saved here, but the server could not store them, so customers may not see them yet.';if(!r.ok){m.style.background='#fdecea';m.style.color='#8a1c12'}});
+  else m.textContent='Settings saved on this device only.'};
+ apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;const j=r.json;if(j.settings){const cur=store.get('gi-settings',{});if(JSON.stringify(j.settings)!==JSON.stringify(cur)){store.set('gi-settings',j.settings);settingsPage()}}else if(Object.keys(S).length)apiConfig('PUT',{settings:Object.assign({advance:500,notifyTo:''},S)})})}
 const RUN=()=>({dashboard,settings:settingsPage,slider:sliderPage,categories:categoriesPage,links:linksPage,discount:discountPage,products:productsPage,orders:ordersPage,finance:financePage,invoices:invoicesPage,add:addPage})[PAGE]();
 const SYNCP=['dashboard','orders','finance','invoices'].includes(PAGE);
 (async()=>{let st=null;if(SYNCP){try{st=await Promise.race([syncOrders(),new Promise(r=>setTimeout(()=>r({state:'offline'}),9000))])}catch(e){st={state:'offline'}}}

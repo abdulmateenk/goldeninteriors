@@ -6,9 +6,10 @@
 // Admin calls need the header  x-admin-key  that matches the ADMIN_KEY environment variable.
 const crypto = require('crypto');
 const { cmd, configured } = require('./_kv');
+const { sendOrderEmails } = require('./_mail');
 
 const HASH = 'gi:orders', SEQ = 'gi:orderseq', FIRST_ID = 2000;   // first customer order becomes GI-2001
-const STATUS = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+const STATUS = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Returned', 'Cancelled'];
 const PAY = ['Cash on delivery', 'Bank transfer'];
 
 const send = (res, code, obj) => { res.statusCode = code; res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(obj)); };
@@ -21,7 +22,7 @@ async function readBody(req) {
   if (typeof req.body === 'string') { try { return JSON.parse(req.body); } catch (e) { return null; } }
   return await new Promise(r => {
     let d = '';
-    req.on('data', c => { d += c; if (d.length > 200000) req.destroy(); });
+    req.on('data', c => { d += c; if (d.length > 1300000) req.destroy(); });
     req.on('end', () => { try { r(JSON.parse(d)); } catch (e) { r(null); } });
     req.on('error', () => r(null));
   });
@@ -86,14 +87,31 @@ module.exports = async (req, res) => {
       try { const raw = await cmd(['GET', 'gi:config']); const r = raw && JSON.parse(raw).rule; if (r && r.min > 0 && r.pct > 0 && r.pct < 100) rule = r; } catch (e) {}
       const subtotal = o.items.reduce((s, i) => s + i.price * i.qty, 0);
       o.discount = rule.on && subtotal >= rule.min ? Math.round(subtotal * rule.pct / 100) : 0;
+      // cash on delivery outside Karachi needs an advance (amount set in Admin > Settings, default Rs. 500)
+      let settings = null;
+      try { const raw = await cmd(['GET', 'gi:config']); settings = raw ? JSON.parse(raw).settings || null : null; } catch (e) {}
+      const adv = settings && settings.advance != null ? Number(settings.advance) : 500;
+      o.advance = o.payment === 'Cash on delivery' && !/^\s*karachi\s*$/i.test(o.city) && adv > 0 ? adv : 0;
+      let shot = '';
+      const rawShot = b && typeof b.shot === 'string' ? b.shot : '';
+      if (rawShot && rawShot.length <= 1000000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(rawShot) && (o.payment === 'Bank transfer' || o.advance > 0)) shot = rawShot;
+      if (shot) o.hasShot = true;
       const order = Object.assign({ id, date: pkDate(), status: 'Pending', source: 'website', createdAt: now, updatedAt: now }, o);
       await cmd(['HSET', HASH, id, JSON.stringify(order)]);
+      if (shot) await cmd(['SET', 'gi:shot:' + id, shot]);
       if (cid) await cmd(['SET', 'gi:cid:' + cid, id, 'EX', 604800]);
-      return send(res, 200, { id });
+      let mail = { store: false, customer: false };
+      try { mail = await sendOrderEmails(order, shot, settings); } catch (e) { console.error('email error', e && e.message); }
+      return send(res, 200, { id, advance: o.advance, customerEmailed: mail.customer, storeEmailed: mail.store });
     }
 
     if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
 
+    if (req.method === 'GET' && /(^|[?&])shot=GI-\d{3,8}(&|$)/.test(req.url || '')) {
+      const sid = /shot=(GI-\d{3,8})/.exec(req.url)[1];
+      const s = await cmd(['GET', 'gi:shot:' + sid]);
+      return send(res, s ? 200 : 404, { shot: s || null });
+    }
     if (req.method === 'GET') {
       const flat = (await cmd(['HGETALL', HASH])) || [];
       const list = [];
@@ -121,6 +139,7 @@ module.exports = async (req, res) => {
       const id = String((b && b.id) || '');
       if (!/^GI-\d{3,8}$/.test(id)) return send(res, 400, { error: 'invalid_id' });
       const n = await cmd(['HDEL', HASH, id]);
+      try { await cmd(['DEL', 'gi:shot:' + id]); } catch (e) {}
       return send(res, n ? 200 : 404, { ok: !!n });
     }
 

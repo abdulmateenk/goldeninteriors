@@ -71,8 +71,9 @@ const SUBS={};
 const CFG=(()=>{try{const a=JSON.parse(localStorage.getItem('gi-cats')||'null');return Array.isArray(a)&&a.length?a:null}catch(e){return null}})();
 if(CFG){const base=Object.fromEntries(BASECATS.map(c=>[c[0],c]));
  CATS=[BASECATS[0]].concat(CFG.filter(c=>c&&c.key&&c.name).map(c=>{const b=base[c.key];SUBS[c.key]=(Array.isArray(c.sub)?c.sub:[]).filter(s=>s&&s.name&&s.url);return[c.key,String(c.name),b?b[2]:'category?c='+c.key,c.value||'']}))}
-CATS.forEach(c=>{if(c[0]=='home')return;if(LIST[c[0]]){LIST[c[0]][0]=c[1];return}
- const v=c[3]||c[1];LIST[c[0]]=[c[1],'Browse our '+c[1]+' collection.',()=>P.filter(x=>x.c==v)];SLUG[v]=c[0]});
+const inCat=(x,v)=>x.c==v||(x.cs||[]).includes(v);
+CATS.forEach(c=>{if(c[0]=='home')return;if(LIST[c[0]]){LIST[c[0]][0]=c[1];if(c[0]!='new'){const v=c[3]||c[1];LIST[c[0]][2]=()=>P.filter(x=>inCat(x,v))}return}
+ const v=c[3]||c[1];LIST[c[0]]=[c[1],'Browse our '+c[1]+' collection.',()=>P.filter(x=>inCat(x,v))];SLUG[v]=c[0]});
 /* store-wide message shown on every product card (editable in Admin > Discount) */
 const PROMO_DEF={on:true,text:'10% OFF on 30,000+ purchase (Applied at check out)'};
 const PROMO=(()=>{try{const p=JSON.parse(localStorage.getItem('gi-promo')||'null');if(p&&typeof p==='object')return{on:!!p.on,text:String(p.text||'')}}catch(e){}return PROMO_DEF})();

@@ -8,7 +8,7 @@ const med0=(x,i=0,alt)=>x.photo?`<img src="${x.photo}" alt="${alt==null?x.n:alt}
 const DR=(()=>{try{const d=JSON.parse(localStorage.getItem('gi-discounts')||'[]');return Array.isArray(d)?d.filter(r=>r&&typeof r=='object'):[]}catch(e){return[]}})();
 const TODAY=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
 function dOf(x,p){let best=null;DR.forEach(r=>{if(!r.active||(r.start&&TODAY<r.start)||(r.end&&TODAY>r.end))return;
- const hit=r.scope=='products'?(r.products||[]).includes(x.id):(r.categories||[]).includes(x.c);if(!hit)return;
+ const hit=r.scope=='products'?(r.products||[]).includes(x.id):((r.categories||[]).includes(x.c)||(x.cs||[]).some(k=>(r.categories||[]).includes(k)));if(!hit)return;
  const np=r.type=='percent'?Math.round(p*(1-r.value/100)):Math.max(1,Math.round(p-r.value));if(np<p&&(!best||np<best.p))best={p:np,r:r,off:r.type=='percent'?Math.round(r.value)+'%':'Rs. '+Math.round(r.value).toLocaleString('en-US')}});return best}
 const card0=(x,i=0)=>`<a class="pc" href="product?id=${x.id}" style="animation-delay:${i*50}ms"><div class="im">${x.tag?`<span class="tag">${dOf(x,x.p)?'−'+dOf(x,x.p).off:x.tag}</span>`:(dOf(x,x.p)?`<span class="tag">−${dOf(x,x.p).off}</span>`:'')}${med(x)}</div><h3 title="${x.n}" class="${x.n.length>34?'lg':''}">${x.n}</h3><p class="pr">${x.from?'From ':''}${dOf(x,x.p)?R(dOf(x,x.p).p)+`<s>${R(x.p)}</s>`:R(x.p)+(x.o?`<s>${R(x.o)}</s>`:'')}</p></a>`;
 const med=(x,i,alt)=>{try{return med0(x,i,alt)}catch(e){return''}};
@@ -54,17 +54,17 @@ function setMeta(n,c){let m=document.querySelector('meta[name="'+n+'"]');if(!m){
    if(!cs.length&&!pr.length)h='<li class="none" role="presentation">No matches for “'+h2(q)+'”. Try “vase”, “tray” or “clock”.</li>'}
   sl.innerHTML=h;si.setAttribute('aria-expanded',h?'true':'false');opts().forEach((o,i)=>o.id='so'+i)}
  function mark(i){const o=opts();o.forEach(x=>x.classList.remove('on'));if(!o.length)return;act=(i+o.length)%o.length;o[act].classList.add('on');si.setAttribute('aria-activedescendant',o[act].id);o[act].scrollIntoView({block:'nearest'})}
- $('#sb').onclick=()=>{const o=sr.classList.toggle('o');if(o){si.focus();render()}};
+ $('#sb').onclick=()=>{const o=sr.classList.toggle('o');if(o){try{si.focus({preventScroll:true})}catch(e){si.focus()}render()}};
  si.oninput=render;si.onfocus=render;
  si.onkeydown=e=>{if(e.key=='ArrowDown'){e.preventDefault();mark(act+1)}else if(e.key=='ArrowUp'){e.preventDefault();mark(act-1)}else if(e.key=='Enter'&&act>=0){e.preventDefault();location.href=opts()[act].querySelector('a').href}};
  $('#sf').onsubmit=e=>{e.preventDefault();const q=si.value.trim();if(q)location.href='search?q='+encodeURIComponent(q)};
- document.addEventListener('click',e=>{if(sr.classList.contains('o')&&!e.target.closest('#sr')&&!e.target.closest('#sb'))sr.classList.remove('o')})}
+ document.addEventListener('click',e=>{if(sr.classList.contains('o')&&document.contains(e.target)&&!e.target.closest('#sr')&&!e.target.closest('#sb'))sr.classList.remove('o')})}
 /* edits made to the sample products from the admin Products page */
 try{const ov=JSON.parse(localStorage.getItem('gi-overrides')||'{}');P.slice().forEach(x=>{const o=ov[x.id];if(!o)return;
  if(o.hidden){[P,NA,CK].forEach(a=>{const i=a.indexOf(x);if(i>-1)a.splice(i,1)});return}
- if(o.name)x.n=o.name;if(o.price)x.p=o.price;if('compareAt' in o)x.o=o.compareAt||null;if('tag' in o)x.tag=o.tag||'';if(o.description)x.d=o.description;if(o.material!=null)x.mat=o.material;if(o.dimensions)x.dim=o.dimensions;if(o.stock!=null)x.stk=o.stock;if(Array.isArray(o.showOn)){x.show=o.showOn;if(o.showOn.includes('new')&&!NA.includes(x))NA.unshift(x);if(o.showOn.includes('clocks')&&!CK.includes(x))CK.push(x)}})}catch(e){}
+ if(Array.isArray(o.also))x.cs=o.also;if(o.name)x.n=o.name;if(o.price)x.p=o.price;if('compareAt' in o)x.o=o.compareAt||null;if('tag' in o)x.tag=o.tag||'';if(o.description)x.d=o.description;if(o.material!=null)x.mat=o.material;if(o.dimensions)x.dim=o.dimensions;if(o.stock!=null)x.stk=o.stock;if(Array.isArray(o.showOn)){x.show=o.showOn;if(o.showOn.includes('new')&&!NA.includes(x))NA.unshift(x);if(o.showOn.includes('clocks')&&!CK.includes(x))CK.push(x)}})}catch(e){}
 /* products added from the admin area (kept in this browser until a backend is connected) */
-try{(JSON.parse(localStorage.getItem('gi-products')||'[]')).forEach(c=>{const x={id:c.id,n:c.name,c:c.category,p:c.price,o:c.compareAt||null,tag:c.tag||'',imgs:c.images,d:c.description,dim:c.dimensions,sd:c.sizeDims,mat:c.material,care:c.care,custom:c,from:!!(c.variants&&new Set(c.variants.map(v=>v.price)).size>1)};x.show=Array.isArray(c.showOn)?c.showOn:(x.tag=='New'?['new']:[]).concat(x.c=='Wall Clocks'?['clocks']:[],x.o?['sale']:[]);P.push(x);if(x.c=='Wall Clocks'||x.show.includes('clocks'))CK.push(x);if(x.show.includes('new')||(!Array.isArray(c.showOn)&&x.tag=='New'))NA.unshift(x)})}catch(e){}
+try{(JSON.parse(localStorage.getItem('gi-products')||'[]')).forEach(c=>{const x={id:c.id,n:c.name,c:c.category,p:c.price,o:c.compareAt||null,tag:c.tag||'',imgs:c.images,d:c.description,dim:c.dimensions,sd:c.sizeDims,mat:c.material,care:c.care,custom:c,cs:Array.isArray(c.also)?c.also:[],from:!!(c.variants&&new Set(c.variants.map(v=>v.price)).size>1)};x.show=Array.isArray(c.showOn)?c.showOn:(x.tag=='New'?['new']:[]).concat(x.c=='Wall Clocks'?['clocks']:[],x.o?['sale']:[]);P.push(x);if(x.c=='Wall Clocks'||x.show.includes('clocks'))CK.push(x);if(x.show.includes('new')||(!Array.isArray(c.showOn)&&x.tag=='New'))NA.unshift(x)})}catch(e){}
 const SW=(a)=>a.map(v=>({label:v[0],swatch:v[1],color:v[2]}));
 function optionsFor(x){const r=optionsFor0(x);return x.photo?r.filter(q=>q.name!='Frame'):r}
 function optionsFor0(x){
@@ -90,7 +90,7 @@ const GI={API_BASE:'',EMAIL_ON:false /* set to true after the /api/order email f
  emailOrder(o){if(!GI.EMAIL_ON||!/^https?:$/.test(location.protocol))return Promise.resolve(null);const c=new AbortController();setTimeout(()=>c.abort(),20000);return fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o),signal:c.signal}).then(r=>r.ok?r.json():null).catch(()=>null)},
  async placeOrder(o){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});if(r.ok)return await r.json()}catch(e){}}
   if(!/^https?:$/.test(location.protocol))return null;
-  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o),signal:c.signal});clearTimeout(t);if(r.ok){const j=await r.json();if(j&&j.id)return j}}catch(e){}return null},
+  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),30000);const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o),signal:c.signal});clearTimeout(t);if(r.ok){const j=await r.json();if(j&&j.id)return j}}catch(e){}return null},
  async checkout(lines){if(GI.API_BASE){try{const r=await fetch(GI.API_BASE+'/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:lines})});const j=await r.json();if(j&&j.url){location.href=j.url;return true}}catch(e){}}return false},
  async wishlist(id,on){if(GI.API_BASE){try{await fetch(GI.API_BASE+'/wishlist/'+encodeURIComponent(id),{method:on?'POST':'DELETE'})}catch(e){}}}};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200)}
@@ -103,7 +103,7 @@ function renderC(){const n=cart.reduce((a,b)=>a+b.q,0);$('#cn').textContent=n;
 $('#items').onclick=e=>{const r=e.target.dataset.r;if(r!=null){cart.splice(+r,1);save();renderC()}};
 $('#cb').onclick=()=>document.body.classList.add('co');
 $('#cx').onclick=$('#ov').onclick=()=>document.body.classList.remove('co');
-addEventListener('keydown',e=>{if(e.key=='Escape'){document.body.classList.remove('co');$('#sr').classList.remove('o')}});
+addEventListener('keydown',e=>{if(e.key=='Escape'&&document.activeElement!==$('#si')){document.body.classList.remove('co');$('#sr').classList.remove('o')}});
 $('#co').onclick=()=>{if(!cart.length){toast('Your cart is empty');return}location.href='checkout'};
 renderC();
 /* notification bar */
@@ -219,6 +219,7 @@ if(PG=='product'){(async()=>{
   const line={sku:sku(),id:x.id,name:x.name,sel:Object.assign({},sel),price:price(),q:qty};const f=cart.find(l=>l.sku==line.sku);f?f.q=Math.min(99,f.q+qty):cart.push(line);save();renderC();await GI.addToCart(line);const b=$('#cn');b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),300);return true}
  $('#add').onclick=async()=>{if(await add())document.body.classList.add('co')};
  $('#buy').onclick=async()=>{if(await add())location.href='checkout'};
+ try{const A=Math.max(0,Math.round(+((typeof ST!='undefined'&&ST.advance!=null)?ST.advance:500))||0);if(A>0){const d=document.createElement('div');d.className='cod pcod';d.innerHTML='<b>Important Notice for Cash on Delivery Orders:</b><br>For orders outside Karachi, the customer must pay <b>Rs. '+A.toLocaleString('en-PK')+'/-</b> in advance before the product is shipped. The remaining product price will be collected via <b>Cash on Delivery (COD)</b>.';const c=document.querySelector('.cta2');c.parentNode.insertBefore(d,c.nextSibling)}}catch(e){}
  const wl=()=>{try{return JSON.parse(localStorage.getItem('gi-wish')||'[]')}catch(e){return[]}};
  const hr=$('#hrt');hr.setAttribute('aria-pressed',wl().includes(x.id));
  hr.onclick=()=>{let l=wl();const on=!l.includes(x.id);l=on?l.concat(x.id):l.filter(k=>k!=x.id);try{localStorage.setItem('gi-wish',JSON.stringify(l))}catch(e){}hr.setAttribute('aria-pressed',on);GI.wishlist(x.id,on);toast(on?'Saved to your wishlist':'Removed from your wishlist')};
@@ -240,7 +241,7 @@ if(PG=='product'){(async()=>{
 if(PG=='checkout')(function(){
  const ST=(()=>{try{return JSON.parse(localStorage.getItem('gi-settings')||'{}')}catch(e){return{}}})();
  const DEL=Object.assign({karachi:400,other:600},ST.delivery||{}),BK=Object.assign({title:'',bank:'',number:'',iban:'',note:''},ST.bank||{});
- const WA='03312523286';
+ const WA='03312523286';const ADV=Math.max(0,Math.round(+(ST.advance!=null?ST.advance:500))||0);let SHOT='';
  const rows=()=>cart.map(l=>({l,x:byId(l.id)||{id:l.id,n:l.name||'Product',svg:'<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="#eee"/></svg>'}}));
  const sub=()=>rows().reduce((a,r)=>a+r.l.price*r.l.q,0);
  const isKhi=c=>/^\s*karachi\s*$/i.test(c);
@@ -263,16 +264,30 @@ if(PG=='checkout')(function(){
   try{const sb=sub(),dc=ruleOff(sb),row=$('#s-dr'),ht=$('#s-hint');
    if(row){row.style.display=dc>0?'':'none';if(dc>0){$('#s-dn').textContent='Discount ('+RULE.pct+'% off orders of '+R(RULE.min)+' or more)';$('#s-dv').textContent='− '+R(dc)}}
    if(ht){const need=RULE.min-sb;ht.style.display=RULE.on&&need>0&&sb>0?'block':'none';if(RULE.on&&need>0)ht.textContent='Add '+R(need)+' more to get '+RULE.pct+'% off your order.'}
-   $('#s-tot').textContent=R(sb-dc+(f||0))}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
- function showBank(){const b=document.querySelector('input[name=pay]:checked').value=='Bank transfer';$('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked))}
+   const tt=sb-dc+(f||0),ad=advNow();$('#s-tot').textContent=R(tt);
+   {const a=$('#s-ar'),c2=$('#s-cr');if(a&&c2){a.style.display=ad>0?'':'none';c2.style.display=ad>0?'':'none';if(ad>0){$('#s-av').textContent=R(ad);$('#s-cv').textContent=R(Math.max(0,tt-ad))}}}}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
+ function advNow(){try{const c=$('#city').value,p=document.querySelector('input[name=pay]:checked').value;return p=='Cash on delivery'&&c.trim()&&!isKhi(c)&&ADV>0?ADV:0}catch(e){return 0}}
+ function showBank(){const p=document.querySelector('input[name=pay]:checked').value,adv=advNow(),b=p=='Bank transfer'||adv>0;
+  $('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked));
+  const n=$('#codn');if(n){n.style.display=adv>0?'block':'none';$('#codn-a').textContent=R(adv)+'/-'}
+  const t=$('#bkt');if(t)t.textContent=adv>0?'Pay your '+R(adv)+' advance to this account':'Our bank account details'}
+ function shotInit(){const f=$('#shotf'),dz=$('#drop');if(!f||!dz)return;
+  const rd=file=>new Promise(res=>{if(!file||!/^image\//.test(file.type)){res(null);return}const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const m=1100,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);let q=.72,d=c.toDataURL('image/jpeg',q);while(d.length>600000&&q>.3){q-=.1;d=c.toDataURL('image/jpeg',q)}res(d.length<=900000?d:null)};im.onerror=()=>res(null);im.src=fr.result};fr.onerror=()=>res(null);fr.readAsDataURL(file)});
+  const set=async file=>{const d=await rd(file);const e=$('#e-shot');if(!d){e.textContent='Please choose a clear image file (JPG or PNG) of your payment.';return}e.textContent='';SHOT=d;$('#shoti').src=d;$('#shotp').style.display='flex';$('#drop-t').textContent='Screenshot added. Tap to choose a different one.'};
+  f.onchange=()=>{if(f.files[0])set(f.files[0])};
+  ['dragenter','dragover'].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.add('over')}));
+  ['dragleave','drop'].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.remove('over')}));
+  dz.addEventListener('drop',e=>{const fl=e.dataTransfer&&e.dataTransfer.files[0];if(fl)set(fl)});
+  $('#shotx').onclick=()=>{SHOT='';f.value='';$('#shotp').style.display='none';$('#drop-t').textContent='Tap to choose, or drop, your payment screenshot here'}}
  function init(){
   if(!rows().length){$('#cg').style.display='none';$('#empty').style.display='block';return}
   $('#cg').style.display='grid';$('#empty').style.display='none';$('#dnote').textContent='Delivery: Karachi '+R(DEL.karachi)+', outside Karachi '+R(DEL.other)+'.';try{summary()}catch(e){console.error(e);try{window.__gierr=String(e&&e.message||e)}catch(_){}}
   try{if(!$('#sl3').children.length)summary()}catch(e){}
   try{if(!$('#sl3').children.length){$('#sl3').innerHTML=(cart||[]).map(l=>'<div class="si" style="display:flex;justify-content:space-between"><span>'+String(l.name||'Product').replace(/</g,'&lt;')+' × '+(l.q||1)+'</span><span>Rs '+((+l.price||0)*(+l.q||1)).toLocaleString()+'</span></div>').join('')}}catch(e){}
   try{showBank()}catch(e){console.error(e)}
-  $('#cf').addEventListener('input',e=>{if(e.target.id=='city')summary();if(e.target.id)err(e.target.id,'')});
-  $('#cf').addEventListener('change',e=>{if(e.target.name=='pay')showBank()});
+  try{shotInit()}catch(e){console.error(e)}
+  $('#cf').addEventListener('input',e=>{if(e.target.id=='city'){summary();showBank()}if(e.target.id)err(e.target.id,'')});
+  $('#cf').addEventListener('change',e=>{if(e.target.name=='pay'){showBank();summary()}});
   $('#place').onclick=place;$('#place2').onclick=place}
  async function place(){try{await place2()}catch(e){console.error(e);$('#place').disabled=false;$('#place2').disabled=false;$('#place').textContent='Place order';toast('Something went wrong. Please try again.')}}
  async function place2(){
@@ -287,23 +302,23 @@ if(PG=='checkout')(function(){
   const pay=document.querySelector('input[name=pay]:checked').value,f=fee(v('city')),items=rows().map(({l,x})=>({name:x.n+(vname(l)?' – '+vname(l):''),qty:l.q,price:l.price,sku:l.sku,id:l.id}));
   const num=a=>{try{return JSON.parse(localStorage.getItem(a)||'[]')}catch(e){return[]}};
   const ids=num('gi-orders').concat(num('gi-orders-new')).map(o=>parseInt(String(o.id).replace(/\D/g,''))||0);
-  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,discount:ruleOff(items.reduce((a,i)=>a+i.price*i.qty,0)),payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
+  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,discount:ruleOff(items.reduce((a,i)=>a+i.price*i.qty,0)),advance:advNow(),shot:SHOT||undefined,payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
   $('#place').disabled=true;$('#place2').disabled=true;$('#place').textContent='Placing order…';
-  {const sv=await GI.placeOrder(order);if(sv&&sv.id)order.id=sv.id;else{try{const pq=JSON.parse(localStorage.getItem('gi-pending')||'[]');pq.push(order);localStorage.setItem('gi-pending',JSON.stringify(pq))}catch(e){}}}
+  {const sv=await GI.placeOrder(order);window.__sv=sv;delete order.shot;if(sv&&sv.id){order.id=sv.id;if(sv.advance!=null)order.advance=sv.advance}else{try{const pq=JSON.parse(localStorage.getItem('gi-pending')||'[]');pq.push(order);localStorage.setItem('gi-pending',JSON.stringify(pq))}catch(e){}}}
   const mailP=GI.emailOrder(order);
   try{const nw=num('gi-orders-new');nw.unshift(order);localStorage.setItem('gi-orders-new',JSON.stringify(nw))}catch(e){}
   /* take the quantities out of the stock of products added from the admin area */
   try{const pr=num('gi-products');let ch=false;items.forEach(i=>{const c=pr.find(p=>p.id==i.id);if(!c||!c.variants)return;const vv=c.variants.find(w=>w.sku==i.sku);if(vv){vv.stock=Math.max(0,vv.stock-i.qty);c.stock=c.variants.reduce((a,w)=>a+w.stock,0);ch=true}});if(ch)localStorage.setItem('gi-products',JSON.stringify(pr))}catch(e){}
-  const tot=items.reduce((a,i)=>a+i.price*i.qty,0)-(order.discount||0)+f;
+  const tot=items.reduce((a,i)=>a+i.price*i.qty,0)-(order.discount||0)+f,adv=order.advance||0;
   cart=[];save();renderC();
   $('#cg').style.display='none';const d=$('#done');d.style.display='block';
   d.innerHTML=`<div class="ok3"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.500"/></svg></div><h2>Thank you, ${h2(order.customer.split(' ')[0])}!</h2><p class="mut">Your order <b>${order.id}</b> has been placed. It will be processed and delivered within 3 to 5 days. We will call you on ${h2(order.phone)} to confirm.</p>
   <div class="cbx" style="text-align:left;margin-top:26px"><h3>Order summary</h3>${items.map(i=>`<div class="si" style="grid-template-columns:1fr auto"><div class="sn"><span>${h2(i.name)}</span><small>Qty ${i.qty}</small></div><span class="sx">${R(i.price*i.qty)}</span></div>`).join('')}
   ${order.discount>0?`<div class="tl" style="color:#2e7d32"><span>Discount (${RULE.pct}% off)</span><span>− ${R(order.discount)}</span></div>`:''}<div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div><div class="tl big"><span>Sub-Total</span><span>${R(tot)}</span></div>
   <p class="mut" style="margin-top:12px">Payment: <b>${pay}</b><br>Delivering to: ${h2(order.address)}, ${h2(order.city)}</p>
-  ${pay=='Bank transfer'?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(tot)} to</h4>${bankHtml()}</div>`:''}</div>
+  ${adv>0?`<div class="cod" style="display:block;margin-top:14px"><b>Important Notice for Cash on Delivery Orders:</b><br>Please pay <b>${R(adv)}/-</b> in advance before your order is shipped. The remaining <b>${R(Math.max(0,tot-adv))}</b> will be collected via <b>Cash on Delivery (COD)</b>.</div>`:''}${pay=='Bank transfer'||adv>0?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(adv>0?adv:tot)} to</h4>${bankHtml()}</div>`:''}</div>
   <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="/" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
-  mailP.then(j=>{const n=$('#mailnote');if(n&&j&&j.customerEmailed)n.textContent='We have also emailed your order confirmation to '+order.email+'.'})}
+  mailP.then(j=>{const n=$('#mailnote'),sv=window.__sv;if(sv&&sv.customerEmailed)j=Object.assign({},j,{customerEmailed:true});if(n&&j&&j.customerEmailed)n.textContent='We have also emailed your order confirmation to '+order.email+'.'})}
  init()})();
 /* SEARCH RESULTS PAGE */
 if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').trim();$('#si').value=q;const r=q?searchP(q):[];
@@ -340,9 +355,18 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
 /* pick up changes made in the admin (header categories, discounts, store-wide message) from the server */
 (async function(){try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(!j)return;let ch=false;
  const cats=j.cats?JSON.stringify(j.cats):null;if((localStorage.getItem('gi-cats')||null)!==cats){if(cats)localStorage.setItem('gi-cats',cats);else localStorage.removeItem('gi-cats');ch=true}
- [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
+ [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule],['gi-settings',j.settings]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
  if(ch&&!sessionStorage.getItem('gi-cfgr')){sessionStorage.setItem('gi-cfgr','1');location.reload()}}catch(e){}})();
 
-(function(){const sr=document.getElementById('sr'),sb=document.getElementById('sb');if(!sr||!sb)return;let y0=0,last=0;
+(function(){const sr=document.getElementById('sr'),sb=document.getElementById('sb');if(!sr||!sb)return;let y0=0,last=0,tm=0;
  sb.addEventListener('click',()=>{setTimeout(()=>{y0=window.scrollY;last=y0},0)});
- addEventListener('scroll',()=>{if(innerWidth>860||!sr.classList.contains('o'))return;const y=window.scrollY;if(y-y0>60&&y>last){sr.classList.remove('o');try{document.getElementById('si').blur()}catch(e){}}last=y},{passive:true})})();
+ document.addEventListener('touchmove',e=>{if(!e.target.closest||!e.target.closest('#sr'))tm=Date.now()},{passive:true});
+ addEventListener('scroll',()=>{if(innerWidth>860||!sr.classList.contains('o'))return;const y=window.scrollY;
+  if(document.activeElement!==document.getElementById('si')&&Date.now()-tm<400&&y-y0>80&&y>last){sr.classList.remove('o');try{document.getElementById('si').blur()}catch(e){}}last=y},{passive:true})})();
+
+/* keep the header (and search bar) pinned while the phone keyboard is open */
+(function(){const T=document.querySelector('.top'),sr=document.getElementById('sr'),v=window.visualViewport;if(!T||!sr||!v)return;
+ const pin=()=>{if(innerWidth>860||!sr.classList.contains('o')){T.style.transform='';return}T.style.transform='translateY('+Math.max(0,v.offsetTop)+'px)'};
+ v.addEventListener('scroll',pin);v.addEventListener('resize',pin);addEventListener('scroll',pin,{passive:true});
+ new MutationObserver(pin).observe(sr,{attributes:true,attributeFilter:['class']});
+ const si=document.getElementById('si');if(si)si.addEventListener('input',()=>{pin();if(innerWidth<=860&&window.scrollY>0&&v.offsetTop>0)window.scrollTo(0,window.scrollY)})})();

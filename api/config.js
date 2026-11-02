@@ -1,6 +1,6 @@
 // Golden Interiors shared site settings (header categories and their sub-headings).
-//   GET /api/config            (public)  -> { cats, discounts, promo, rule }   (each null when never saved)
-//   PUT /api/config            (admin)   any of { cats, discounts, promo, rule }; cats:null = built-in categories
+//   GET /api/config            (public)  -> { cats, discounts, promo, rule, settings }   (each null when never saved)
+//   PUT /api/config            (admin)   any of { cats, discounts, promo, rule, settings }; cats:null = built-in categories
 const crypto = require('crypto');
 const { cmd, configured } = require('./_kv');
 const KEY = 'gi:config';
@@ -56,17 +56,27 @@ function cleanRule(r) {
   if (!(min > 0) || min > 100000000 || !(pct > 0) || pct >= 100) return null;
   return { on: !!r.on, min: Math.round(min), pct: Math.round(pct * 100) / 100 };
 }
+function cleanSettings(s) {
+  if (!s || typeof s !== 'object') return null;
+  const n = (v, d) => { const x = Number(v); return Number.isFinite(x) && x >= 0 && x <= 1000000 ? Math.round(x) : d; };
+  const d = s.delivery || {}, b = s.bank || {};
+  const email = str(s.notifyTo, 120);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return { delivery: { karachi: n(d.karachi, 400), other: n(d.other, 600) }, bank: { title: str(b.title, 80), bank: str(b.bank, 80), number: str(b.number, 60), iban: str(b.iban, 60), note: str(b.note, 300) }, advance: n(s.advance, 500), notifyTo: email };
+}
 function cleanPromo(p) {
   if (!p || typeof p !== 'object') return null;
   return { on: !!p.on, text: str(p.text, 160) };
 }
 module.exports = async (req, res) => {
   try {
-    if (!configured()) return send(res, 200, { cats: null, discounts: null, promo: null, rule: null });
+    if (!configured()) return send(res, 200, { cats: null, discounts: null, promo: null, rule: null, settings: null });
     const load = async () => { try { const raw = await cmd(['GET', KEY]); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } };
     if (req.method === 'GET') {
       const b = await load();
-      return send(res, 200, { cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null });
+      let settings = b.settings || null;
+      if (settings && !isAdmin(req)) { settings = Object.assign({}, settings); delete settings.notifyTo; }   // the notification address stays private
+      return send(res, 200, { cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings });
     }
     if (req.method === 'PUT') {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
@@ -84,6 +94,10 @@ module.exports = async (req, res) => {
       if ('promo' in b) {
         if (b.promo === null) delete cur.promo;
         else { const p = cleanPromo(b.promo); if (!p) return send(res, 400, { error: 'invalid_promo' }); cur.promo = p; }
+      }
+      if ('settings' in b) {
+        if (b.settings === null) delete cur.settings;
+        else { const t = cleanSettings(b.settings); if (!t) return send(res, 400, { error: 'invalid_settings' }); cur.settings = t; }
       }
       if ('rule' in b) {
         if (b.rule === null) delete cur.rule;

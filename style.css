@@ -319,3 +319,29 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 /* tighter gap between product title and price */
 .pc h3{min-height:0!important;height:auto!important;margin-bottom:0!important}
 .pc .pr{margin-top:3px!important}
+/* product rows: arrows only on laptop/PC (centred on the card), none on phones; exactly 2 cards on a phone */
+@media (min-width:861px){
+ #home .gw .grid{display:flex!important;flex-wrap:nowrap;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0!important;margin:0!important}
+ #home .gw .grid::-webkit-scrollbar{display:none}
+ #home .gw .grid>.pc{flex:0 0 calc((100% - 56px)/5);scroll-snap-align:start}
+ .gw .gb{display:grid!important;place-items:center;top:50%;transform:translateY(-50%);width:40px!important;height:40px!important;font-size:24px!important;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+ .gw .gb.p{left:-20px}.gw .gb.n{right:-20px}
+}
+@media (max-width:860px){
+ .gw .gb{display:none!important}
+ #home .gw .grid{gap:10px!important;margin-right:0!important;padding-right:0!important;scroll-snap-type:x mandatory}
+ #home .gw .grid>.pc{flex:0 0 calc((100% - 10px)/2)!important;scroll-snap-align:start}
+}
+/* SALE / NEW badges: same size and position on every card */
+.pc .tag{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:22px;line-height:1;padding:0 9px!important;font:600 10.5px/1 "Hanken Grotesk",sans-serif!important;letter-spacing:.07em;text-transform:uppercase;left:8px!important;top:8px!important;border-radius:3px;white-space:nowrap}
+@media (max-width:600px){.pc .tag{height:20px;padding:0 7px!important;font-size:9.5px!important;left:6px!important;top:6px!important}}
+/* cash-on-delivery advance notice and payment screenshot upload */
+.cod{margin:14px 0;padding:14px 16px;background:#fbf3dd;border:1px solid #e8d49a;border-left:4px solid var(--gold);border-radius:6px;color:#3d2c08;font-size:15px;line-height:1.55}
+.shot{margin-top:16px;padding-top:14px;border-top:1px dashed #d9d2c0}
+.shot .shh{margin:0 0 8px;font-size:14px}.shot .shh em{font-style:normal;color:var(--mut);font-size:13px}
+.drop{display:flex;align-items:center;justify-content:center;text-align:center;min-height:96px;padding:16px;border:2px dashed #cdbf98;border-radius:8px;background:#fffdf7;color:#6b5a2b;font-size:14px;cursor:pointer;transition:background .2s,border-color .2s}
+.drop.over{background:#fbf3dd;border-color:var(--gold)}
+.shp{display:flex;align-items:center;gap:14px;margin-top:10px}.shp img{width:88px;height:88px;object-fit:cover;border:1px solid var(--line);border-radius:6px}
+.shx{background:none;border:1px solid #b3261e;color:#b3261e;padding:8px 14px;border-radius:4px;cursor:pointer;font:500 13px "Hanken Grotesk",sans-serif}
+.pcod{display:block!important;margin:-8px 0 22px}
+.sr li,.sr li a,.sr .tx2{overflow-wrap:anywhere;word-break:break-word;min-width:0}.sr .wrap,.sr ul{max-width:100%;overflow-x:hidden}
