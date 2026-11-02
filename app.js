@@ -362,11 +362,20 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
  sb.addEventListener('click',()=>{setTimeout(()=>{y0=window.scrollY;last=y0},0)});
  document.addEventListener('touchmove',e=>{if(!e.target.closest||!e.target.closest('#sr'))tm=Date.now()},{passive:true});
  addEventListener('scroll',()=>{if(innerWidth>860||!sr.classList.contains('o'))return;const y=window.scrollY;
-  if(document.activeElement!==document.getElementById('si')&&Date.now()-tm<400&&y-y0>80&&y>last){sr.classList.remove('o');try{document.getElementById('si').blur()}catch(e){}}last=y},{passive:true})})();
+  if(false){sr.classList.remove('o');try{document.getElementById('si').blur()}catch(e){}}last=y},{passive:true})})();
 
 /* keep the header (and search bar) pinned while the phone keyboard is open */
-(function(){const T=document.querySelector('.top'),sr=document.getElementById('sr'),v=window.visualViewport;if(!T||!sr||!v)return;
- const pin=()=>{if(innerWidth>860||!sr.classList.contains('o')){T.style.transform='';return}T.style.transform='translateY('+Math.max(0,v.offsetTop)+'px)'};
+(function(){const T=document.querySelector('.top'),sr=document.getElementById('sr'),v=window.visualViewport;if(!T||!sr||!v)return;const lock=()=>{if(innerWidth>860||sr.classList.contains('inpage'))return;document.documentElement.classList.toggle('sro',sr.classList.contains('o'))};new MutationObserver(lock).observe(sr,{attributes:true,attributeFilter:['class']});
+ const pin=()=>{T.style.transform=''};
  v.addEventListener('scroll',pin);v.addEventListener('resize',pin);addEventListener('scroll',pin,{passive:true});
  new MutationObserver(pin).observe(sr,{attributes:true,attributeFilter:['class']});
  const si=document.getElementById('si');if(si)si.addEventListener('input',()=>{pin();if(innerWidth<=860&&window.scrollY>0&&v.offsetTop>0)window.scrollTo(0,window.scrollY)})})();
+
+/* phones: search lives on its own page (in the normal page flow), so nothing can make it vanish while typing */
+(function(){const sb=document.getElementById('sb'),sr=document.getElementById('sr'),si=document.getElementById('si');if(!sb||!sr||!si||innerWidth>860)return;
+ const pg=document.querySelector('main[data-page=search]');
+ if(!pg){sb.onclick=e=>{e.preventDefault();location.href='search?focus=1'+(location.search.match(/[?&]q=([^&]*)/)?'':'')};return}
+ const w=pg.querySelector('.wrap'),cr=w.querySelector('.crumb');sr.classList.add('inpage','o');w.insertBefore(sr,cr);
+ const q=new URLSearchParams(location.search).get('q');if(q)si.value=q;
+ sb.onclick=e=>{e.preventDefault();try{if(document.referrer&&new URL(document.referrer).origin==location.origin&&history.length>1)history.back();else location.href='/'}catch(x){location.href='/'}};
+ if(!q){try{si.focus({preventScroll:true})}catch(e){}}})();
