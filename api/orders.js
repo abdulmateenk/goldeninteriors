@@ -7,6 +7,7 @@
 const crypto = require('crypto');
 const { cmd, configured } = require('./_kv');
 const { sendOrderEmails } = require('./_mail');
+const coupons = require('./_coupon');
 
 const HASH = 'gi:orders', SEQ = 'gi:orderseq', FIRST_ID = 2000;   // first customer order becomes GI-2001
 const STATUS = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Returned', 'Cancelled'];
@@ -91,7 +92,18 @@ module.exports = async (req, res) => {
       let rule = { on: true, min: 30000, pct: 10 };
       { const r = cfg.rule; if (r && r.min > 0 && r.pct > 0 && r.pct < 100) rule = r; }
       const subtotal = o.items.reduce((s, i) => s + i.price * i.qty, 0);
-      o.discount = rule.on && subtotal >= rule.min ? Math.round(subtotal * rule.pct / 100) : 0;
+      const ruleOff = rule.on && subtotal >= rule.min ? Math.round(subtotal * rule.pct / 100) : 0;
+      o.discount = ruleOff;
+      // optional coupon code: the server checks it again and works out the amount itself
+      let usedCoupon = null;
+      const cpCode = coupons.norm(b && b.coupon);
+      if (cpCode) {
+        const ev = coupons.check(cfg, cpCode, subtotal);
+        if (!ev.ok) return send(res, 409, { error: 'coupon_invalid', reason: ev.error, min: ev.min || 0 });
+        const add = coupons.amount(ev.coupon, subtotal, ruleOff);
+        o.discount = ruleOff + add;
+        if (add > 0) { o.couponCode = ev.coupon.code; o.couponOff = add; usedCoupon = ev.coupon; }
+      }
       // cash on delivery outside Karachi needs an advance (amount set in Admin > Settings, default Rs. 500) and its payment screenshot
       const settings = cfg.settings || null;
       const adv = settings && settings.advance != null ? Number(settings.advance) : 500;
@@ -110,12 +122,13 @@ module.exports = async (req, res) => {
       try {
         let ch = false;
         for (const i of o.items) { const e = i.id && ov[i.id]; if (e && e.stock != null && Number.isFinite(Number(e.stock))) { e.stock = Math.max(0, Number(e.stock) - i.qty); ch = true; } }
+        if (usedCoupon && Array.isArray(cfg.coupons)) { const k = cfg.coupons.find(x => x && x.code === usedCoupon.code); if (k) { k.used = (Number(k.used) || 0) + 1; ch = true; } }
         if (ch) { cfg.overrides = ov; await cmd(['SET', 'gi:config', JSON.stringify(cfg)]); }
       } catch (e) {}
       if (cid) await cmd(['SET', 'gi:cid:' + cid, id, 'EX', 604800]);
       let mail = { store: false, customer: false };
       try { mail = await sendOrderEmails(order, shot, settings); } catch (e) { console.error('email error', e && e.message); }
-      return send(res, 200, { id, advance: o.advance, customerEmailed: mail.customer, storeEmailed: mail.store });
+      return send(res, 200, { id, advance: o.advance, discount: o.discount, couponOff: o.couponOff || 0, customerEmailed: mail.customer, storeEmailed: mail.store });
     }
 
     if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });

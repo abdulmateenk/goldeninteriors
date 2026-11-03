@@ -350,7 +350,7 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .pc .im .tag{position:absolute!important;z-index:3}
 .cw .cb{display:none!important}
 @media (max-width:860px){.sr.o{position:fixed;top:0;left:0;right:0;z-index:70;max-height:100vh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;padding-top:env(safe-area-inset-top,0px)}.sr .wrap{padding-top:12px}html.sro,html.sro body{overflow:hidden!important}}
-.sx{display:none}@media (max-width:860px){.sr form{align-items:center}.sx{display:block;flex:none;background:none;border:0;color:#fff;font-size:30px;line-height:1;padding:0 4px;cursor:pointer}}
+.sr .sx{display:none}@media (max-width:860px){.sr form{align-items:center}.sr .sx{display:block;flex:none;background:none;border:0;color:#fff;font-size:30px;line-height:1;padding:0 4px;cursor:pointer}}
 @media (max-width:860px){
 .sr.inpage{display:block!important;position:static!important;max-height:none!important;overflow:visible!important;background:#0b0b0b;margin:16px 0 0;border-radius:10px;border:0}
 .sr.inpage .sx{display:none!important}.sr.inpage .wrap{padding:12px 14px!important}.sr.inpage ul{max-height:none!important}
@@ -422,3 +422,94 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .pc .pr:not(:has(.wo))::after{content:"";display:block;height:15px}
 .grid:not(:has(.wo)) .pc .pr::after{display:none}
 }
+/* ===== p11: checkout rework, review window, wishlist ===== */
+/* checkout header: big logo, bag icon only */
+body.pg-ck .ann,body.pg-ck .soc,body.pg-ck #sb,body.pg-ck .act>a.ib,body.pg-ck #cats{display:none!important}
+body.pg-ck .top .hd{grid-template-columns:minmax(0,1fr) auto!important;height:92px!important;padding:0 18px!important}
+body.pg-ck .top .logo{justify-self:start!important;justify-content:flex-start}
+body.pg-ck .top .logo img{height:68px!important}
+@media (max-width:860px){body.pg-ck .top .hd{height:76px!important;padding:0 14px!important}body.pg-ck .top .logo img{height:56px!important}}
+/* order summary: dropdown card */
+.csum{padding:0!important;background:#f6f5f2}
+.sth{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;background:none;border:0;padding:18px 22px;cursor:pointer;font:inherit;color:var(--ink);text-align:left}
+.sth .stt{display:flex;align-items:center;gap:8px;font:700 1.3rem "Times New Roman",Times,serif}
+.sth .stt svg{width:18px;height:18px;fill:none;stroke:var(--gold);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s}
+.sth b{font:700 1.2rem "Hanken Grotesk",system-ui,sans-serif;white-space:nowrap}
+.csum.shut .sth .stt svg{transform:rotate(180deg)}
+.csum .stb{padding:2px 22px 22px;border-top:1px solid var(--line)}
+.csum.shut .stb{display:none}
+.csum .si{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:14px;align-items:start;padding:16px 0;border-bottom:1px solid var(--line)}
+.csum .si .sp{width:68px;height:68px;flex:none;border-radius:8px;background:#fff;border:1px solid var(--line);position:relative;overflow:visible;display:block}
+.csum .si .sp img,.csum .si .sp svg{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+.csum .si .sp b{right:-7px;top:-7px;border-radius:50%;min-width:22px;height:22px;padding:0;display:grid;place-items:center;font-size:12px;color:#fff;background:rgba(0,0,0,.78)}
+.csum .si .sn{display:flex;flex-direction:column;gap:3px;min-width:0}
+.csum .si .nm{font-weight:600;line-height:1.3;overflow-wrap:anywhere;word-break:break-word}
+.csum .si .vn{color:var(--mut);font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.csum .si .sv{font-weight:600;white-space:nowrap;text-align:right;padding-top:1px}
+.qc{display:inline-flex;align-items:center;gap:10px;margin-top:8px}
+.qc .qb{display:inline-flex;align-items:center;border:1px solid #cfcbc2;border-radius:999px;background:#fff;height:34px}
+.qc button{background:none;border:0;cursor:pointer;color:var(--ink);font-size:18px;line-height:1;width:34px;height:100%;display:grid;place-items:center;padding:0;text-decoration:none}
+.qc button:disabled{opacity:.3;cursor:not-allowed}
+.qc .qv{min-width:22px;text-align:center;font-weight:600;font-size:14px}
+.qc .rm{border:0;width:34px;height:34px;border-radius:50%;color:var(--mut)}
+.qc .rm:hover{color:#c0392b;background:#fff}
+.qc .rm svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.csum .tl.big{color:var(--ink)}
+.csum .adv{margin:8px 0 4px;padding:6px 14px;background:#fff6e0;border:1px solid #ecd9a6}
+.csum .adv .tl{padding:6px 0}
+.csum .adv b{color:#7a5410}
+.csum #place{width:100%;margin-top:10px}
+@media (max-width:860px){.csum{border-left:0;border-right:0;margin:0 -16px;order:-1}.csum.shut{margin-bottom:6px}.sth{padding:16px 16px}.csum .stb{padding:2px 16px 18px}}
+/* cart review window */
+.rvw{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:5vh 14px}
+.rvw.on{display:flex}
+.rvb{background:#fff;width:min(560px,100%);padding:26px 26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;margin:auto 0}
+.rvb h2{font:700 1.6rem "Times New Roman",Times,serif;margin:0 28px 14px 0;color:var(--gold)}
+.rvx{position:absolute;right:14px;top:12px;background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:var(--ink)}
+.rvb .si{display:grid;grid-template-columns:84px minmax(0,1fr);gap:14px;align-items:start;padding:16px 0;border-top:1px solid var(--line)}
+.rvb .si .sp{width:84px;height:84px;background:var(--surf);position:relative;overflow:hidden}
+.rvb .si .sp img,.rvb .si .sp svg{width:100%;height:100%;object-fit:cover;display:block}
+.rvb .si .sn{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rvb .nm{font:600 1.15rem "Cormorant Garamond",Georgia,serif;color:var(--gold);line-height:1.25;overflow-wrap:anywhere}
+.rvb .vn{color:var(--mut);font-size:13px;overflow-wrap:anywhere}
+.rvb .un{font-size:15px;margin-top:4px}
+.rvb .lt{font-weight:700;color:var(--gold);margin-top:6px}
+.rvb .rvs{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid #000;margin-top:4px;padding-top:16px;font:700 1.3rem "Hanken Grotesk",system-ui,sans-serif}
+.rvb .rvs span:last-child{color:var(--gold)}
+.rvb .rvn{color:var(--mut);font-size:13px;margin:6px 0 16px}
+.rvb .btn{width:100%}
+.rvb .rvc{display:block;margin:12px auto 0;background:none;border:0;text-decoration:underline;color:var(--mut);cursor:pointer;font:inherit;font-size:14px}
+.rvb .rve{padding:24px 0;color:var(--mut)}
+/* wishlist */
+.xx-removed{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--lg);color:#000;font:600 11px "Hanken Grotesk",sans-serif;vertical-align:middle}
+.wk{display:flex;flex-direction:column;gap:8px;min-width:0}
+.wk .wrm{align-self:flex-start;background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;cursor:pointer;font:inherit;font-size:13px}
+.wk .wrm:hover{color:#c0392b}
+.tl>span:last-child,.tl>b{white-space:nowrap;text-align:right}
+.tl>span:first-child{min-width:0}
+
+/* cart drawer: quantity + wishlist link */
+.dr .it{grid-template-columns:64px minmax(0,1fr) auto;align-items:start}
+.dr .it>div:nth-child(2){min-width:0}.dr .it b{overflow-wrap:anywhere}
+.dr .it .qc{margin-top:8px;gap:6px}
+.dr .it .qb{height:32px}.dr .it .qc button{width:32px;font-size:17px;text-decoration:none;color:var(--ink)}
+.dr .it .qc .rm{width:32px;height:32px}
+.dr .it>span{white-space:nowrap;padding-top:2px}
+.dwl{display:flex;align-items:center;gap:8px;margin:2px 0 6px;padding:10px 0;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font:500 14px "Hanken Grotesk",system-ui,sans-serif}
+.dwl .hh{color:#d0443a;font-size:15px}
+.dwl .wc{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--lg);color:#000;font:600 11px "Hanken Grotesk",sans-serif}
+.dwl:hover{color:var(--gold)}
+.si .sv{white-space:nowrap;text-align:right;font-weight:600}
+#done .si .sn .nm{overflow-wrap:anywhere;font-weight:500}
+
+/* coupon box */
+.cpn{padding:14px 0 2px;border-bottom:1px solid var(--line)}
+.cpr{display:flex;gap:8px}
+.cpr input{flex:1 1 auto;min-width:0;height:44px;padding:0 14px;border:1px solid #cfcbc2;background:#fff;font:500 15px "Hanken Grotesk",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;border-radius:0}
+.cpr input::placeholder{text-transform:none;letter-spacing:0;color:#8a8780}
+.cpr button{flex:none;height:44px;padding:0 20px;border:1px solid var(--ink);background:var(--ink);color:#fff;font:500 14px "Hanken Grotesk",system-ui,sans-serif;cursor:pointer}
+.cpr button:disabled{opacity:.6;cursor:wait}
+.cpo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#e8f4ea;border:1px solid #b9d9bd;color:#1f6b2d;font-size:14px}
+.cpo b{overflow-wrap:anywhere}
+.cpo button{background:none;border:0;text-decoration:underline;color:#1f6b2d;cursor:pointer;font:inherit;font-size:13px;flex:none}
+.cpm{min-height:0;margin:6px 0 8px;font-size:13px}.cpm:empty{display:none}.cpm.err{color:#b3261e}.cpm.ok{color:#1f6b2d}

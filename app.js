@@ -21,10 +21,12 @@ const cards=a=>a.map(x=>{try{return card(x)}catch(e){return''}}).join('');
 const MN=document.querySelector('main');const PG=MN.dataset.page;let KEY=MN.dataset.key||'';
 /* shared header, footer */
 $('#logo').src=IM.logo;$('#flogo').src=IM.logo;
+function WLN(){try{const a=JSON.parse(localStorage.getItem('gi-wish')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+function refreshWish(){const n=WLN().length;$$('.cats .wc,.dwl .wc').forEach(e=>{e.textContent=n;e.style.display=n?'':'none'})}
 function nav(k){const esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
  $('#catl').innerHTML=CATS.map(c=>{const sb=SUBS[c[0]]||[],a=`<a href="${c[2]}" ${c[0]==k?'class="on" aria-current="page"':''}>${esc2(c[1])}</a>`;
   if(!sb.length)return`<li>${a}</li>`;
-  return`<li class="hs">${a}<button type="button" class="cx" aria-label="Show ${esc2(c[1])} menu" aria-expanded="false"><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button><ul class="dd">${sb.map(s=>`<li><a href="${esc2(s.url)}">${esc2(s.name)}</a></li>`).join('')}</ul></li>`}).join('')}
+  return`<li class="hs">${a}<button type="button" class="cx" aria-label="Show ${esc2(c[1])} menu" aria-expanded="false"><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button><ul class="dd">${sb.map(s=>`<li><a href="${esc2(s.url)}">${esc2(s.name)}</a></li>`).join('')}</ul></li>`}).join('');refreshWish()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.cats .cx');$$('.cats .hs.open').forEach(l=>{if(!b||l!==b.parentNode){l.classList.remove('open');const x=l.querySelector('.cx');if(x)x.setAttribute('aria-expanded','false')}});if(b){const l=b.parentNode,o=l.classList.toggle('open');b.setAttribute('aria-expanded',o)}})
 if(PG=='list'&&!KEY)KEY=(new URLSearchParams(location.search).get('c')||'').replace(/[^a-z0-9-]/gi,'');
 nav(PG=='home'?'home':KEY);
@@ -98,14 +100,32 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clea
 /* cart (remembered across pages when the browser allows) */
 let cart=[];try{let raw=null;try{raw=localStorage.getItem('gi-cart')}catch(e){}if(!raw){try{raw=sessionStorage.getItem('gi-cart')}catch(e){}}cart=(JSON.parse(raw||'[]')||[]).filter(l=>l&&l.id&&l.price>0&&l.q>0&&byId(l.id)).map(l=>Object.assign({sku:l.id,sel:{}},l))}catch(e){}
 const save=()=>{const j=JSON.stringify(cart);try{localStorage.setItem('gi-cart',j)}catch(e){}try{sessionStorage.setItem('gi-cart',j)}catch(e){}};
+const TR3='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+function maxQty(l){try{const x=byId(l.id)||{};const s=(x.custom&&x.custom.variants)?((x.custom.variants.find(w=>w.sku==l.sku)||{}).stock):(x.stk!=null?x.stk:null);return s!=null&&s>=0?Math.min(99,s):99}catch(e){return 99}}
 function renderC(){const n=cart.reduce((a,b)=>a+b.q,0);$('#cn').textContent=n;
- $('#items').innerHTML=cart.length?cart.map((l,i)=>{const x=byId(l.id);return`<div class="it"><a class="t" href="product?id=${x.id}">${med(x,0,'')}</a><div><b>${x.n}</b><br><span class="mut">${Object.values(l.sel||{}).join(' · ')}${l.sel&&Object.keys(l.sel).length?' · ':''}Qty ${l.q}</span><br><button data-r="${i}">Remove</button></div><span>${R(l.price*l.q)}</span></div>`}).join(''):'<p class="mut" style="padding:20px 0">Your cart is empty. Pick something from the collection.</p>';
+ $('#items').innerHTML=cart.length?cart.map((l,i)=>{const x=byId(l.id);return`<div class="it"><a class="t" href="product?id=${x.id}">${med(x,0,'')}</a><div><b>${x.n}</b><br><span class="mut">${Object.values(l.sel||{}).filter(Boolean).join(' · ')}</span><div class="qc"><div class="qb"><button type="button" data-a="m" data-i="${i}" aria-label="Decrease quantity"${l.q<=1?' disabled':''}>&minus;</button><span class="qv">${l.q}</span><button type="button" data-a="p" data-i="${i}" aria-label="Increase quantity"${l.q>=maxQty(l)?' disabled':''}>+</button></div><button type="button" class="rm" data-r="${i}" aria-label="Remove from cart">${TR3}</button></div></div><span>${R(l.price*l.q)}</span></div>`}).join(''):'<p class="mut" style="padding:20px 0">Your cart is empty. Pick something from the collection.</p>';
  $('#st').textContent=R(cart.reduce((a,l)=>a+l.price*l.q,0))}
-$('#items').onclick=e=>{const r=e.target.dataset.r;if(r!=null){cart.splice(+r,1);save();renderC()}};
+$('#items').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.r!=null){cart.splice(+b.dataset.r,1);save();renderC();return}
+ const a=b.dataset.a,l=cart[+b.dataset.i];if(!a||!l)return;if(a=='p'){const mx=maxQty(l);if(l.q>=mx){toast(mx<99?'Only '+mx+' in stock':'Maximum quantity reached');return}l.q++}else if(a=='m'){if(l.q<=1)return;l.q--}save();renderC()};
 $('#cb').onclick=()=>document.body.classList.add('co');
 $('#cx').onclick=$('#ov').onclick=()=>document.body.classList.remove('co');
 addEventListener('keydown',e=>{if(e.key=='Escape'&&document.activeElement!==$('#si')){document.body.classList.remove('co');$('#sr').classList.remove('o')}});
-$('#co').onclick=()=>{if(!cart.length){toast('Your cart is empty');return}location.href='checkout'};
+{const dh=document.querySelector('.dr .dh');if(dh&&!document.querySelector('.dwl')){const a=document.createElement('a');a.className='dwl';a.href='wishlist';a.innerHTML='<span class="hh">&#9829;</span> My wishlist <span class="wc" style="display:none"></span>';dh.after(a);refreshWish()}}
+/* cart review window */
+const RV=(()=>{const w=document.createElement('div');w.className='rvw';w.id='rvw';w.setAttribute('role','dialog');w.setAttribute('aria-modal','true');w.setAttribute('aria-label','Review your cart');document.body.appendChild(w);return w})();
+const TR2='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+function drawRV(){const sbt=cart.reduce((a,l)=>a+l.price*l.q,0);
+ RV.innerHTML='<div class="rvb"><button class="rvx" aria-label="Close" data-k="x">&times;</button><h2>Your shopping cart</h2>'+(cart.length?cart.map((l,i)=>{const x=byId(l.id)||{n:l.name||'Product'};const nm=String(x.n||l.name||'Product'),vn=Object.values(l.sel||{}).filter(Boolean).join(' · ');let th='';try{th=med(x,0,'')}catch(e){}
+  return'<div class="si" data-i="'+i+'"><div class="sp">'+th+'</div><div class="sn"><span class="nm">'+h2(nm)+'</span>'+(vn?'<span class="vn">'+h2(vn)+'</span>':'')+'<span class="un">'+R(l.price)+'</span><div class="qc"><div class="qb"><button type="button" data-a="m" aria-label="Decrease quantity"'+(l.q<=1?' disabled':'')+'>&minus;</button><span class="qv">'+l.q+'</span><button type="button" data-a="p" aria-label="Increase quantity">+</button></div><button type="button" class="rm" data-a="d" aria-label="Remove">'+TR2+'</button></div><span class="lt">'+R(l.price*l.q)+'</span></div></div>'}).join('')+'<div class="rvs"><span>Subtotal</span><span>'+R(sbt)+'</span></div><p class="rvn">Delivery charges and any discount are calculated at checkout.</p><button class="btn" data-k="go">Check Out</button><button class="rvc" data-k="x">Continue shopping</button>':'<p class="rve">Your cart is empty.</p><button class="btn" data-k="x">Continue shopping</button>')+'</div>'}
+const openRV=()=>{drawRV();RV.classList.add('on');try{RV.querySelector('[data-k=go]').focus()}catch(e){}};
+const closeRV=()=>RV.classList.remove('on');
+RV.addEventListener('click',e=>{if(e.target===RV){closeRV();return}const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.k=='x'){closeRV();return}if(b.dataset.k=='go'){if(!cart.length)return;location.href='checkout';return}
+ const a=b.dataset.a;if(!a||b.disabled)return;const row=b.closest('.si'),i=+row.dataset.i,l=cart[i];if(!l)return;
+ if(a=='d')cart.splice(i,1);else if(a=='p'){const x=byId(l.id)||{};let mx=99;try{const s=(x.custom&&x.custom.variants)?((x.custom.variants.find(w=>w.sku==l.sku)||{}).stock):(x.stk!=null?x.stk:null);if(s!=null&&s>=0)mx=Math.min(99,s)}catch(er){}if(l.q>=mx){toast(mx<99?'Only '+mx+' in stock':'Maximum quantity reached');return}l.q++}else if(a=='m'){if(l.q<=1)return;l.q--}
+ save();renderC();drawRV()});
+addEventListener('keydown',e=>{if(e.key=='Escape'&&RV.classList.contains('on'))closeRV()});
+$('#co').onclick=()=>{if(!cart.length){toast('Your cart is empty');return}if(!matchMedia('(max-width:860px)').matches){location.href='checkout';return}document.body.classList.remove('co');openRV()};
 renderC();
 /* notification bar */
 {const m=$$('.am');let k=0;if(m.length>1)setInterval(()=>{m[k].classList.remove('on');k=(k+1)%m.length;m[k].classList.add('on')},4000)}
@@ -216,14 +236,15 @@ if(PG=='product'){(async()=>{
  const q=$('#q');const setQ=n=>{qty=Math.max(1,Math.min(maxQ(),n||1));q.value=qty};
  $('#m1').onclick=()=>setQ(qty-1);$('#p1').onclick=()=>setQ(qty+1);q.onchange=()=>setQ(parseInt(q.value));
  const sizeMsg=()=>{let e=$('#serr');if(!e){e=document.createElement('p');e.id='serr';e.className='serr';e.setAttribute('role','alert');$('.cta2').before(e)}e.textContent='Please choose a size above, then press the button again.';$('#opts').classList.add('shake');setTimeout(()=>$('#opts').classList.remove('shake'),600)};
- async function add(){if(startsFrom()){toast('Please select a size first');sizeMsg();$('#opts').scrollIntoView({block:'center',behavior:'smooth'});return false}
-  const line={sku:sku(),id:x.id,name:x.name,sel:Object.assign({},sel),price:price(),q:qty};const f=cart.find(l=>l.sku==line.sku);f?f.q=Math.min(99,f.q+qty):cart.push(line);save();renderC();await GI.addToCart(line);const b=$('#cn');b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),300);return true}
+ async function add(now){if(startsFrom()){toast('Please select a size first');sizeMsg();$('#opts').scrollIntoView({block:'center',behavior:'smooth'});return false}
+  const line={sku:sku(),id:x.id,name:x.name,sel:Object.assign({},sel),price:price(),q:qty};if(now){let ok=false;try{sessionStorage.setItem('gi-now',JSON.stringify([line]));ok=true}catch(e){}if(ok)return true}
+  const f=cart.find(l=>l.sku==line.sku);f?f.q=Math.min(99,f.q+qty):cart.push(line);save();renderC();await GI.addToCart(line);const b=$('#cn');b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),300);return true}
  $('#add').onclick=async()=>{if(await add())document.body.classList.add('co')};
- $('#buy').onclick=async()=>{if(await add())location.href='checkout'};
+ $('#buy').onclick=async()=>{if(await add(true)){let on=false;try{on=!!sessionStorage.getItem('gi-now')}catch(e){}location.href=on?'checkout?now=1':'checkout'}};
  try{const A=Math.max(0,Math.round(+((typeof ST!='undefined'&&ST.advance!=null)?ST.advance:500))||0);if(A>0){const d=document.createElement('div');d.className='cod pcod';d.innerHTML='<b>Important Notice for Cash on Delivery Orders:</b><br>For orders outside Karachi, the customer must pay <b>Rs. '+A.toLocaleString('en-PK')+'/-</b> in advance before the product is shipped. The remaining product price will be collected via <b>Cash on Delivery (COD)</b>.';const c=document.querySelector('.cta2');c.parentNode.insertBefore(d,c.nextSibling)}}catch(e){}
  const wl=()=>{try{return JSON.parse(localStorage.getItem('gi-wish')||'[]')}catch(e){return[]}};
  const hr=$('#hrt');hr.setAttribute('aria-pressed',wl().includes(x.id));
- hr.onclick=()=>{let l=wl();const on=!l.includes(x.id);l=on?l.concat(x.id):l.filter(k=>k!=x.id);try{localStorage.setItem('gi-wish',JSON.stringify(l))}catch(e){}hr.setAttribute('aria-pressed',on);GI.wishlist(x.id,on);toast(on?'Saved to your wishlist':'Removed from your wishlist')};
+ hr.onclick=()=>{let l=wl();const on=!l.includes(x.id);l=on?l.concat(x.id):l.filter(k=>k!=x.id);try{localStorage.setItem('gi-wish',JSON.stringify(l))}catch(e){}hr.setAttribute('aria-pressed',on);GI.wishlist(x.id,on);toast(on?'Saved. Find it in your cart under My wishlist.':'Removed from your wishlist');refreshWish()};
  $('#rel').innerHTML=cards(P.filter(y=>y.id!=x.id&&y.c==x.category).concat(P.filter(y=>y.id!=x.id&&y.c!=x.category)).slice(0,4));
  $('#morecat').innerHTML=CATS.filter(c=>c[0]!='home'&&c[0]!=KEY).map(c=>({c,p:P.find(y=>y.c==(c[3]||c[1]))||P.find(y=>(SLUG[y.c]||'')==c[0])})).sort((a,b)=>!!b.p-!!a.p).slice(0,4).map((r,i)=>`<a href="${r.c[2]}" aria-label="${h2(r.c[1])}">${r.p?med(r.p,0,''):`<img src="${IM[['s1','s2','s3','deco'][i%4]]}" alt="">`}<span>${h2(r.c[1])}</span></a>`).join('');
  /* SEO: description and product structured data */
@@ -239,7 +260,30 @@ if(PG=='product'){(async()=>{
 /* header height for sticky blocks */
 {const T=document.querySelector('.top');const hh=()=>{if(!T)return;const m=T.querySelector('.cats.show');document.documentElement.style.setProperty('--hh',(T.offsetHeight-(m?m.offsetHeight:0))+'px')};hh();addEventListener('resize',hh);addEventListener('load',hh);try{document.fonts.ready.then(hh)}catch(e){}try{new ResizeObserver(hh).observe(T)}catch(e){}}
 /* CHECKOUT PAGE */
-if(PG=='checkout')(function(){
+if(PG=='checkout')(function(OUT){let NOW=false,cart=OUT;
+ try{if(/[?&]now=1/.test(location.search)){const n=JSON.parse(sessionStorage.getItem('gi-now')||'[]').filter(l=>l&&l.id&&+l.price>0&&+l.q>0);if(n.length){cart=n;NOW=true}}}catch(e){}
+ const csave=()=>{if(NOW){try{sessionStorage.setItem('gi-now',JSON.stringify(cart))}catch(e){}}else save()};
+ document.body.classList.add('pg-ck');
+ let COUPON=null;try{const c=JSON.parse(sessionStorage.getItem('gi-coupon')||'null');if(c&&c.code&&c.value>0)COUPON=c}catch(e){}
+ const cpSave=()=>{try{COUPON?sessionStorage.setItem('gi-coupon',JSON.stringify(COUPON)):sessionStorage.removeItem('gi-coupon')}catch(e){}};
+ const cpAdd=(sb,dc)=>{if(!COUPON)return 0;if(COUPON.min>0&&sb<COUPON.min)return 0;const raw=COUPON.type=='percent'?Math.round(sb*COUPON.value/100):Math.min(COUPON.value,sb);const add=COUPON.combine?raw:Math.max(0,raw-dc);return Math.max(0,Math.min(add,sb-dc))};
+ const CPERR=(r,m)=>({not_found:'This coupon code is not valid.',expired:'This coupon has expired.',not_started:'This coupon is not active yet.',used_up:'This coupon has already been fully used.',min_order:'This coupon needs an order of at least '+R(m||0)+'.'}[r]||'This coupon cannot be used.');
+ const cpMsg=(t,k)=>{const e=$('#cpm');if(!e)return;e.textContent=t||'';e.className='cpm'+(t?(k=='ok'?' ok':' err'):'')};
+ function cpLocal(code){let l=[];try{l=JSON.parse(localStorage.getItem('gi-coupons')||'[]')}catch(e){}const k=(Array.isArray(l)?l:[]).find(x=>x&&x.code==code&&x.active);if(!k)return{ok:false,error:'not_found'};const t=new Date(Date.now()+5*36e5).toISOString().slice(0,10);if(k.start&&t<k.start)return{ok:false,error:'not_started'};if(k.end&&t>k.end)return{ok:false,error:'expired'};if(k.limit>0&&(k.used||0)>=k.limit)return{ok:false,error:'used_up'};if(k.min>0&&sub()<k.min)return{ok:false,error:'min_order',min:k.min};return{ok:true,coupon:{code:k.code,type:k.type,value:k.value,min:k.min||0,combine:!!k.combine}}}
+ function cpSync(sb,dc){if(COUPON&&COUPON.min>0&&sb<COUPON.min){cpMsg('Coupon '+COUPON.code+' was removed: it needs an order of at least '+R(COUPON.min)+'.','err');COUPON=null;cpSave()}
+  const cp=cpAdd(sb,dc),row=$('#s-cr');
+  if(row){row.style.display=cp>0?'':'none';if(cp>0){$('#s-cn').textContent='Coupon '+COUPON.code;$('#s-cv').textContent='− '+R(cp)}}
+  const on=!!COUPON,a=$('#cpi1'),o=$('#cpo');if(a)a.style.display=on?'none':'';if(o){o.style.display=on?'':'none';if(on)$('#cpo-t').textContent=COUPON.code+(cp>0?' applied':' added, no extra saving (your order discount is bigger)')}
+  return cp}
+ async function cpApply(){const raw=String($('#cpi').value||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');if(!raw){cpMsg('Enter your coupon code.','err');return}
+  const b=$('#cpa');b.disabled=true;b.textContent='Checking…';let res=null;
+  try{if(/^https?:$/.test(location.protocol)){const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);const r=await fetch('/api/coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:raw,subtotal:sub()}),signal:c.signal});clearTimeout(t);if(r.ok){const j=await r.json();if(j&&typeof j.ok=='boolean')res=j}}}catch(e){}
+  if(!res)res=cpLocal(raw);
+  b.disabled=false;b.textContent='Apply';
+  if(!res.ok){cpMsg(CPERR(res.error,res.min),'err');return}
+  COUPON=res.coupon;{const sb=sub(),dc=ruleOff(sb);if(cpAdd(sb,dc)==0&&!COUPON.combine){COUPON=null;cpMsg('Your order discount is already bigger than this coupon, so the coupon was not added.','err');return}}
+  cpSave();cpMsg('Coupon applied.','ok');$('#cpi').value='';summary();showBank()}
+ const cpNow=()=>{const sb=sub();return cpAdd(sb,ruleOff(sb))};
  const ST=(()=>{try{return JSON.parse(localStorage.getItem('gi-settings')||'{}')}catch(e){return{}}})();
  const DEL=Object.assign({karachi:400,other:600},ST.delivery||{}),BK=Object.assign({title:'',bank:'',number:'',iban:'',note:''},ST.bank||{});
  const WA='03312523286';const ADV=Math.max(0,Math.round(+(ST.advance!=null?ST.advance:500))||0);let SHOT='';
@@ -251,22 +295,30 @@ if(PG=='checkout')(function(){
  const err=(id,m)=>{const e=$('#e-'+id);if(e)e.textContent=m||'';const i=$('#'+id);if(i)i.classList.toggle('bad',!!m)};
  function bankHtml(){const l=[['Account title',BK.title],['Bank',BK.bank],['Account number',BK.number],['IBAN',BK.iban]].filter(r=>r[1]);
   return l.length?`<dl class="bk">${l.map(r=>`<div><dt>${r[0]}</dt><dd>${h2(r[1])}</dd></div>`).join('')}</dl>${BK.note?`<p class="mut">${h2(BK.note)}</p>`:''}<p class="mut">After you transfer, send the receipt on WhatsApp ${WA} with your order number.</p>`:`<p class="mut">Our bank account details will be shown here.</p>`}
+ const TRASH='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+ const maxOf=(x,l)=>{try{const s=(x&&x.custom&&x.custom.variants)?((x.custom.variants.find(w=>w.sku==l.sku)||{}).stock):(x&&x.stk!=null?x.stk:null);return s!=null&&s>=0?Math.min(99,s):99}catch(e){return 99}};
  function summary(){let c='',f=null;try{c=$('#city')?$('#city').value:'';f=fee(c)}catch(e){}
   let r=[];try{r=rows()}catch(e){r=(cart||[]).map(l=>({l,x:{n:l.name||'Product'}}))}
   const box=$('#sl3');if(!box)return;let html='';
-  r.forEach(({l,x})=>{let s='';
-   try{const q=+l.q||1,p=+l.price||0,nm=String((x&&x.n)||l.name||'Product'),vn=(()=>{try{return vname(l)}catch(e){return''}})();
+  r.forEach(({l,x},i)=>{
+   try{const q=+l.q||1,p=+l.price||0,nm=String((x&&x.n)||l.name||'Product'),vn=(()=>{try{return vname(l)}catch(e){return''}})(),mx=maxOf(x,l);
     let th='';try{th=med(x,0,'')}catch(e){th=''}
-    s='<div class="si"><div class="sp">'+th+'<b>'+q+'</b></div><div class="sn"><span>'+h2(nm)+(vn?' – '+h2(vn):'')+'</span>'+(q>1?'<small>Qty '+q+' × '+R(p)+'</small>':'')+'</div><span class="sx">'+R(p*q)+'</span></div>'
-   }catch(e){try{s='<div class="si" style="display:flex;justify-content:space-between"><div class="sn"><span>'+h2(String(l.name||'Product'))+'</span><small>Qty '+(l.q||1)+'</small></div><span class="sx">'+R((+l.price||0)*(+l.q||1))+'</span></div>'}catch(e2){s='<div class="si"><span>'+(l.name||'Product')+' × '+(l.q||1)+'</span></div>'}}
-   html+=s});
+    html+='<div class="si" data-i="'+i+'"><div class="sp">'+th+'<b>'+q+'</b></div><div class="sn"><span class="nm">'+h2(nm)+'</span>'+(vn?'<span class="vn">'+h2(vn)+'</span>':'')+'<div class="qc"><div class="qb"><button type="button" data-a="m" aria-label="Decrease quantity of '+h2(nm)+'"'+(q<=1?' disabled':'')+'>&minus;</button><span class="qv" aria-live="polite">'+q+'</span><button type="button" data-a="p" aria-label="Increase quantity of '+h2(nm)+'"'+(q>=mx?' disabled':'')+'>+</button></div><button type="button" class="rm" data-a="d" aria-label="Remove '+h2(nm)+' from order">'+TRASH+'</button></div></div><span class="sv">'+R(p*q)+'</span></div>'
+   }catch(e){html+='<div class="si"><div></div><div class="sn"><span class="nm">'+h2(String(l.name||'Product'))+'</span><span class="vn">Qty '+(l.q||1)+'</span></div><span class="sv">'+R((+l.price||0)*(+l.q||1))+'</span></div>'}});
   box.innerHTML=html;
   try{$('#s-del').textContent=f==null?'Enter your city':R(f);$('#s-del-n').textContent=f==null?'':'– '+(c.trim().replace(/\b\w/g,m=>m.toUpperCase()))}catch(e){}
   try{const sb=sub(),dc=ruleOff(sb),row=$('#s-dr'),ht=$('#s-hint');
    if(row){row.style.display=dc>0?'':'none';if(dc>0){$('#s-dn').textContent='Discount ('+RULE.pct+'% off orders of '+R(RULE.min)+' or more)';$('#s-dv').textContent='− '+R(dc)}}
    if(ht){const need=RULE.min-sb;ht.style.display=RULE.on&&need>0&&sb>0?'block':'none';if(RULE.on&&need>0)ht.textContent='Add '+R(need)+' more to get '+RULE.pct+'% off your order.'}
-   const ad=advNow(),tt=sb-dc+(f||0)+ad;$('#s-tot').textContent=R(tt);
-   {const a=$('#s-ar');if(a){a.style.display=ad>0?'':'none';if(ad>0)$('#s-av').textContent=R(ad)}}}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
+   const cp=cpSync(sb,dc),ad=advNow(),tt=sb-dc-cp+(f||0);$('#s-tot').textContent=R(tt);
+   {const a=$('#s-ar');if(a){a.style.display=ad>0?'':'none';if(ad>0){$('#s-av').textContent=R(ad);$('#s-bal').textContent=R(Math.max(0,tt-ad))}}}}catch(e){let t=0;(cart||[]).forEach(l=>{t+=(+l.price||0)*(+l.q||0)});$('#s-tot').textContent='Rs '+t.toLocaleString()}}
+ const emptyNow=()=>{$('#cg').style.display='none';$('#empty').style.display='block'};
+ function sumInit(){const bx=$('#sl3'),cs=document.querySelector('.csum'),th=$('#sth');
+  if(th)th.onclick=()=>{const o=cs.classList.toggle('shut');th.setAttribute('aria-expanded',!o)};
+  {const a=$('#cpa'),i=$('#cpi'),x=$('#cpx');if(a)a.onclick=cpApply;if(i)i.onkeydown=e=>{if(e.key=='Enter'){e.preventDefault();cpApply()}};if(x)x.onclick=()=>{COUPON=null;cpSave();cpMsg('');summary();showBank()}}
+  if(bx)bx.onclick=e=>{const bt=e.target.closest('button[data-a]');if(!bt||bt.disabled)return;const row=bt.closest('.si'),i=+row.dataset.i,l=cart[i];if(!l)return;const a=bt.dataset.a;
+   if(a=='d'){cart.splice(i,1)}else if(a=='p'){const mx=maxOf(byId(l.id)||{},l);if(l.q>=mx){toast(mx<99?'Only '+mx+' in stock':'Maximum quantity reached');return}l.q++}else if(a=='m'){if(l.q<=1)return;l.q--}
+   csave();renderC();if(!cart.length){emptyNow();return}summary();showBank()}}
  function advNow(){try{const c=$('#city').value,p=document.querySelector('input[name=pay]:checked').value;return p=='Cash on delivery'&&c.trim()&&!isKhi(c)&&ADV>0?ADV:0}catch(e){return 0}}
  function showBank(){const p=document.querySelector('input[name=pay]:checked').value,adv=advNow(),b=p=='Bank transfer'||adv>0;
   $('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked));
@@ -288,6 +340,7 @@ if(PG=='checkout')(function(){
   try{if(!$('#sl3').children.length){$('#sl3').innerHTML=(cart||[]).map(l=>'<div class="si" style="display:flex;justify-content:space-between"><span>'+String(l.name||'Product').replace(/</g,'&lt;')+' × '+(l.q||1)+'</span><span>Rs '+((+l.price||0)*(+l.q||1)).toLocaleString()+'</span></div>').join('')}}catch(e){}
   try{showBank()}catch(e){console.error(e)}
   try{shotInit()}catch(e){console.error(e)}
+  try{sumInit()}catch(e){console.error(e)}
   $('#cf').addEventListener('input',e=>{if(e.target.id=='city'){summary();showBank()}if(e.target.id)err(e.target.id,'')});
   $('#cf').addEventListener('change',e=>{if(e.target.name=='pay'){showBank();summary()}});
   $('#place').onclick=place;$('#place2').onclick=place}
@@ -305,24 +358,24 @@ if(PG=='checkout')(function(){
   const pay=document.querySelector('input[name=pay]:checked').value,f=fee(v('city')),items=rows().map(({l,x})=>({name:x.n+(vname(l)?' – '+vname(l):''),qty:l.q,price:l.price,sku:l.sku,id:l.id}));
   const num=a=>{try{return JSON.parse(localStorage.getItem(a)||'[]')}catch(e){return[]}};
   const ids=num('gi-orders').concat(num('gi-orders-new')).map(o=>parseInt(String(o.id).replace(/\D/g,''))||0);
-  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,discount:ruleOff(items.reduce((a,i)=>a+i.price*i.qty,0)),advance:advNow(),shot:SHOT||undefined,payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
+  const order={id:'GI-'+(Math.max(1000,...ids)+1),date:new Date().toISOString().slice(0,10),customer:v('name'),phone:v('phone'),email:v('email'),city:v('city').replace(/\b\w/g,c=>c.toUpperCase()),address:v('addr'),notes:v('notes'),items,delivery:f,discount:ruleOff(items.reduce((a,i)=>a+i.price*i.qty,0))+cpNow(),coupon:cpNow()>0?COUPON.code:undefined,couponCode:cpNow()>0?COUPON.code:undefined,couponOff:cpNow()||undefined,advance:advNow(),shot:SHOT||undefined,payment:pay,status:'Pending',cid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)};
   $('#place').disabled=true;$('#place2').disabled=true;$('#place').textContent='Placing order…';
-  {const sv=await GI.placeOrder(order);if(sv&&sv.rejected){const er=sv.rejected.error;$('#place').disabled=false;$('#place2').disabled=false;$('#place').textContent='Place order';toast(er=='out_of_stock'?(sv.rejected.name+' is out of stock'+(sv.rejected.left>0?' (only '+sv.rejected.left+' left)':'')+'. Please remove it from your cart.'):'We could not place this order. Please check your details.');return}window.__sv=sv;delete order.shot;if(sv&&sv.id){order.id=sv.id;if(sv.advance!=null)order.advance=sv.advance}else{try{const pq=JSON.parse(localStorage.getItem('gi-pending')||'[]');pq.push(order);localStorage.setItem('gi-pending',JSON.stringify(pq))}catch(e){}}}
+  {const sv=await GI.placeOrder(order);if(sv&&sv.rejected){const er=sv.rejected.error;$('#place').disabled=false;$('#place2').disabled=false;$('#place').textContent='Place order';if(er=='coupon_invalid'){COUPON=null;cpSave();try{summary()}catch(e){}toast(CPERR(sv.rejected.reason,sv.rejected.min)+' Your order was not placed.');return}toast(er=='out_of_stock'?(sv.rejected.name+' is out of stock'+(sv.rejected.left>0?' (only '+sv.rejected.left+' left)':'')+'. Please remove it from your cart.'):'We could not place this order. Please check your details.');return}window.__sv=sv;delete order.shot;if(sv&&sv.id){order.id=sv.id;if(sv.advance!=null)order.advance=sv.advance;if(sv.discount!=null){order.discount=sv.discount;order.couponOff=sv.couponOff||0;if(!order.couponOff)delete order.couponCode}}else{try{const pq=JSON.parse(localStorage.getItem('gi-pending')||'[]');pq.push(order);localStorage.setItem('gi-pending',JSON.stringify(pq))}catch(e){}}}
   const mailP=GI.emailOrder(order);
   try{const nw=num('gi-orders-new');nw.unshift(order);localStorage.setItem('gi-orders-new',JSON.stringify(nw))}catch(e){}
   /* take the quantities out of the stock of products added from the admin area */
   try{const pr=num('gi-products');let ch=false;items.forEach(i=>{const c=pr.find(p=>p.id==i.id);if(!c||!c.variants)return;const vv=c.variants.find(w=>w.sku==i.sku);if(vv){vv.stock=Math.max(0,vv.stock-i.qty);c.stock=c.variants.reduce((a,w)=>a+w.stock,0);ch=true}});if(ch)localStorage.setItem('gi-products',JSON.stringify(pr))}catch(e){}
-  const adv=order.advance||0,tot=items.reduce((a,i)=>a+i.price*i.qty,0)-(order.discount||0)+f+adv;
-  cart=[];save();renderC();
+  const adv=order.advance||0,tot=items.reduce((a,i)=>a+i.price*i.qty,0)-(order.discount||0)+f;
+  if(NOW){try{sessionStorage.removeItem('gi-now')}catch(e){}}else{OUT.length=0;save()}COUPON=null;cpSave();renderC();
   $('#cg').style.display='none';const d=$('#done');d.style.display='block';
   d.innerHTML=`<div class="ok3"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.500"/></svg></div><h2>Thank you, ${h2(order.customer.split(' ')[0])}!</h2><p class="mut">Your order <b>${order.id}</b> has been placed. It will be processed and delivered within 3 to 5 days. We will call you on ${h2(order.phone)} to confirm.</p>
-  <div class="cbx" style="text-align:left;margin-top:26px"><h3>Order summary</h3>${items.map(i=>`<div class="si" style="grid-template-columns:1fr auto"><div class="sn"><span>${h2(i.name)}</span><small>Qty ${i.qty}</small></div><span class="sx">${R(i.price*i.qty)}</span></div>`).join('')}
-  ${order.discount>0?`<div class="tl" style="color:#2e7d32"><span>Discount (${RULE.pct}% off)</span><span>− ${R(order.discount)}</span></div>`:''}<div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div>${adv>0?`<div class="tl"><span>COD advance (out-of-city)</span><span>${R(adv)}</span></div>`:""}<div class="tl big"><span>Sub-Total</span><span>${R(tot)}</span></div>
+  <div class="cbx" style="text-align:left;margin-top:26px"><h3>Order summary</h3>${items.map(i=>`<div class="si" style="grid-template-columns:minmax(0,1fr) auto"><div class="sn"><span class="nm">${h2(i.name)}</span><small>Qty ${i.qty}</small></div><span class="sv">${R(i.price*i.qty)}</span></div>`).join('')}
+  ${order.discount-(order.couponOff||0)>0?`<div class="tl" style="color:#2e7d32"><span>Discount (${RULE.pct}% off)</span><span>− ${R(order.discount-(order.couponOff||0))}</span></div>`:''}${order.couponOff>0?`<div class="tl" style="color:#2e7d32"><span>Coupon ${h2(order.couponCode||'')}</span><span>− ${R(order.couponOff)}</span></div>`:''}<div class="tl"><span>Delivery Charges – ${h2(order.city)}</span><span>${R(f)}</span></div><div class="tl big"><span>Total</span><span>${R(tot)}</span></div>${adv>0?`<div class="tl"><span>Advance to pay now</span><b>${R(adv)}</b></div><div class="tl"><span>Balance on delivery</span><b>${R(tot-adv)}</b></div>`:''}
   <p class="mut" style="margin-top:12px">Payment: <b>${pay}</b><br>Delivering to: ${h2(order.address)}, ${h2(order.city)}</p>
   ${adv>0?`<div class="cod" style="display:block;margin-top:14px"><b>Important Notice for Cash on Delivery Orders:</b><br>Please pay <b>${R(adv)}/-</b> in advance before your order is shipped. Our team will contact you about the advance payment. The remaining amount will be collected via <b>Cash on Delivery (COD)</b>.</div>`:''}${pay=='Bank transfer'||adv>0?`<div class="bkb" style="display:block;margin-top:14px"><h4>Please transfer ${R(adv>0?adv:tot)} to</h4>${bankHtml()}</div>`:''}</div>
   <p class="mut" id="mailnote" style="margin-top:16px"></p><a class="btn" href="/" style="display:inline-block;margin-top:22px">Continue shopping</a>`;scrollTo({top:0,behavior:'smooth'});
   mailP.then(j=>{const n=$('#mailnote'),sv=window.__sv;if(sv&&sv.customerEmailed)j=Object.assign({},j,{customerEmailed:true});if(n&&j&&j.customerEmailed)n.textContent='We have also emailed your order confirmation to '+order.email+'.'})}
- init()})();
+ init()})(cart);
 /* SEARCH RESULTS PAGE */
 if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').trim();$('#si').value=q;const r=q?searchP(q):[];
  const t=q?`Search results for “${q}”`:'All products';$('#st').textContent=t;document.title=`${q?'Search: '+q:'Search'} | Golden Interiors`;
@@ -394,3 +447,11 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
 (function(){let t;const run=()=>{document.querySelectorAll('.grid').forEach(g=>{const hs=[...g.querySelectorAll('.pc h3')];if(!hs.length)return;hs.forEach(h=>h.style.removeProperty('min-height'));const ds=[...g.querySelectorAll('.pc .dn')];ds.forEach(d=>d.style.removeProperty('min-height'));if(ds.length){const mx=Math.max(...ds.map(d=>d.offsetHeight));ds.forEach(d=>d.style.setProperty('min-height',mx+'px','important'));g.style.setProperty('--dnh',mx+'px')}const rows=new Map();hs.forEach(h=>{const k=Math.round(h.closest('.pc').getBoundingClientRect().top+scrollY);const a=rows.get(k)||[];a.push(h);rows.set(k,a)});
   const flex=getComputedStyle(g).display=='flex';const groups=[hs];groups.forEach(a=>{const m=Math.max(...a.map(h=>h.offsetHeight));a.forEach(h=>h.style.setProperty('min-height',m+'px','important'))})})};
  const go=()=>{clearTimeout(t);t=setTimeout(run,60)};new MutationObserver(go).observe(document.body,{childList:true,subtree:true});addEventListener('resize',go);addEventListener('load',go);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(go);[300,900,2000,4000].forEach(n=>setTimeout(go,n));try{new ResizeObserver(go).observe(document.body)}catch(e){}go()})();
+
+/* WISHLIST PAGE */
+if(PG=='wishlist'){const draw=()=>{const list=WLN().map(id=>P.find(x=>x.id==id)).filter(Boolean);
+ $('#wsc').textContent=list.length?list.length+' saved product'+(list.length>1?'s':''):'';
+ $('#g-w').innerHTML=list.map((x,i)=>'<div class="wk">'+card(x,i)+'<button type="button" class="wrm" data-id="'+h2(x.id)+'">Remove from wishlist</button></div>').join('');
+ $('#wempty').style.display=list.length?'none':'block';refreshWish();try{document.dispatchEvent(new Event('gi-cards'))}catch(e){}};
+ $('#g-w').onclick=e=>{const b=e.target.closest('.wrm');if(!b)return;try{localStorage.setItem('gi-wish',JSON.stringify(WLN().filter(k=>k!=b.dataset.id)))}catch(er){}GI.wishlist(b.dataset.id,false);draw();toast('Removed from your wishlist')};
+ document.title='My Wishlist | Golden Interiors';draw()}

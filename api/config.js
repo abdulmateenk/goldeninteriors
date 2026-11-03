@@ -1,5 +1,5 @@
 // Golden Interiors shared site settings (header categories and their sub-headings).
-//   GET /api/config            (public)  -> { cats, discounts, promo, rule, settings, overrides }   (each null when never saved)
+//   GET /api/config            (public)  -> { cats, discounts, promo, rule, settings, overrides }   (admin GET also returns coupons; the public one never does)   (each null when never saved)
 //   PUT /api/config            (admin)   any of { cats, discounts, promo, rule, settings, overrides }; cats:null = built-in categories
 const crypto = require('crypto');
 const { cmd, configured } = require('./_kv');
@@ -88,6 +88,23 @@ function cleanOverrides(o) {
   }
   return out;
 }
+function cleanCoupons(a, cur) {
+  if (!Array.isArray(a) || a.length > 300) return null;
+  const old = Array.isArray(cur) ? cur : [], seen = new Set(), out = [];
+  for (const d of a) {
+    const code = String(d && d.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 24), value = Number(d && d.value);
+    if (code.length < 3 || seen.has(code) || !(value > 0) || value > 10000000) return null;
+    seen.add(code);
+    const type = d.type === 'fixed' ? 'fixed' : 'percent';
+    if (type === 'percent' && value >= 100) return null;
+    const start = str(d.start, 10), end = str(d.end, 10);
+    if (!DATE.test(start) || !DATE.test(end)) return null;
+    const id = str(d.id, 40) || code, prev = old.find(x => x && (x.id === id || x.code === code));
+    const min = Number(d.min), limit = Number(d.limit);
+    out.push({ id, code, type, value, min: Number.isFinite(min) && min > 0 ? Math.round(min) : 0, limit: Number.isFinite(limit) && limit > 0 ? Math.round(limit) : 0, used: prev ? Number(prev.used) || 0 : 0, start, end, active: !!d.active, combine: !!d.combine, name: str(d.name, 60) });
+  }
+  return out;
+}
 function cleanPromo(p) {
   if (!p || typeof p !== 'object') return null;
   return { on: !!p.on, text: str(p.text, 160) };
@@ -100,7 +117,8 @@ module.exports = async (req, res) => {
       const b = await load();
       let settings = b.settings || null;
       if (settings && !isAdmin(req)) { settings = Object.assign({}, settings); delete settings.notifyTo; }   // the notification address stays private
-      return send(res, 200, { cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
+      const coupons = isAdmin(req) && Array.isArray(b.coupons) ? b.coupons : undefined;
+      return send(res, 200, { coupons, cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
     }
     if (req.method === 'PUT') {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
@@ -114,6 +132,10 @@ module.exports = async (req, res) => {
       if ('discounts' in b) {
         if (b.discounts === null) delete cur.discounts;
         else { const d = cleanDiscounts(b.discounts); if (!d) return send(res, 400, { error: 'invalid_discounts' }); cur.discounts = d; }
+      }
+      if ('coupons' in b) {
+        if (b.coupons === null) delete cur.coupons;
+        else { const c = cleanCoupons(b.coupons, cur.coupons); if (!c) return send(res, 400, { error: 'invalid_coupons' }); cur.coupons = c; }
       }
       if ('promo' in b) {
         if (b.promo === null) delete cur.promo;
