@@ -406,3 +406,4 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .pc .dn b{font-size:11px!important;line-height:1.2!important;-webkit-line-clamp:4!important}
 .grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:calc(var(--dnh,40px) + 9px)!important}
 @media (min-width:601px){.pc .dn{padding:5px 10px!important}.pc .dn b{font-size:12.5px!important;line-height:1.25!important;-webkit-line-clamp:3!important}.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:calc(var(--dnh,40px) + 9px)!important}}
+@media (max-width:380px){.pc .was{height:20px!important;min-height:20px!important;line-height:20px;margin-top:2px;overflow:hidden}.pc .was s{line-height:20px}}
