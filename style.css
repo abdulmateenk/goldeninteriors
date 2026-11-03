@@ -366,3 +366,31 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .top .soc{justify-self:start}.top .act{justify-self:end}.top .logo{justify-self:center}
 @media (max-width:380px){.top .ib{width:34px!important}.top .logo img{height:32px!important}.top .hd{padding:0 10px!important}}
 @media (max-width:860px){.top .wrap{padding-left:8px!important;padding-right:8px!important}.top .hd{padding:0 4px!important}}
+/* aligned cards: same banner, title and price positions on every card */
+.pc{height:100%}
+.pc .dn{box-sizing:border-box;height:70px;min-height:70px;justify-content:center;overflow:hidden}
+.pc .dn b{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+.pc h3{height:2.7em!important;min-height:2.7em!important;line-height:1.35!important;margin-bottom:0!important}
+.pc .pr{height:1.5em;line-height:1.5!important;margin-top:4px!important}
+.pc .was{min-height:22px;margin-top:2px}.pc .was.ph{visibility:hidden}
+.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:calc(70px + 12px)!important}
+@media (max-width:600px){.pc .dn{height:58px;min-height:58px;padding:6px 8px}.pc .dn b{font-size:11.5px}.pc .was{min-height:20px}.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:calc(58px + 9px)!important}}
+.pc h3{height:2.5em!important;min-height:2.5em!important;line-height:1.25!important}
+.pc .pr{margin-top:0!important;line-height:1.3!important;height:1.3em}
+.grid:not(:has(.was:not(.ph))) .pc .was.ph{display:none}
+.pc{padding-bottom:10px!important}
+@media (max-width:600px){.pc{padding-bottom:8px!important}}
+.pc .pr{font-weight:800!important;font-size:21px!important;height:1.3em;text-align:left;color:#000!important}
+@media (max-width:600px){.pc .pr{font-size:18px!important}}
+.pc .pr{display:flex;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
+.pc .pr .wo{font:500 13px "Hanken Grotesk",sans-serif;color:#222;text-decoration:line-through}
+.pc .was s{display:none}
+@media (max-width:380px){.pc .pr .wo{display:none}.pc .was s{display:inline}}
+@media (min-width:381px) and (max-width:600px){.pc .pr .wo{font-size:11.5px}.pc .pr{gap:6px;font-size:17px!important}}
+.pc .pr{justify-content:flex-start!important}
+.pc .was span{display:none}
+@media (min-width:381px){.pc .was{display:none!important}}
+.gw .gb,.gb{display:none!important}
+.pc .im{border-radius:10px!important;overflow:hidden}
+.pc .im .tag{left:0!important;top:0!important;border-radius:0 0 10px 0!important;height:24px!important;padding:0 12px 0 11px!important}
+@media (max-width:600px){.pc .im{border-radius:9px!important}.pc .im .tag{height:22px!important;padding:0 10px 0 9px!important;border-radius:0 0 9px 0!important}}
