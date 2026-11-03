@@ -1,6 +1,7 @@
 // Order emails: a notification to the store and a confirmation to the customer.
 // Needs these environment variables on Vercel (nothing is sent until they are set):
-//   MAIL_USER  the Gmail address that sends the emails      MAIL_PASS  its Google "app password" (16 letters)
+//   Option A (Resend, your own domain):  RESEND_API_KEY  (API key from resend.com)   MAIL_FROM  (optional, default "Golden Interiors <orders@goldeninteriors.pk>")
+//   Option B (Gmail):  MAIL_USER  the Gmail address that sends the emails      MAIL_PASS  its Google "app password" (16 letters)
 //   MAIL_TO    (optional) where new-order notifications go; otherwise the address saved in Admin > Settings, otherwise MAIL_USER
 let nodemailer = null;
 try { nodemailer = require('nodemailer'); } catch (e) {}
@@ -51,14 +52,31 @@ function customerMail(o, bank, hasShot) {
   return { subject: `Your Golden Interiors order ${o.id}`, html };
 }
 
+// minimal Resend sender with the same sendMail() shape nodemailer uses
+function resendTransport(key) {
+  return {
+    async sendMail(m) {
+      const body = { from: m.from, to: [].concat(m.to), subject: m.subject, html: m.html };
+      if (m.replyTo) body.reply_to = m.replyTo;
+      if (m.attachments && m.attachments.length) body.attachments = m.attachments.map(a => ({ filename: a.filename, content: Buffer.from(a.content).toString('base64') }));
+      const c = new AbortController(), t = setTimeout(() => c.abort(), 8000);
+      try {
+        const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: c.signal });
+        if (!r.ok) { const txt = await r.text().catch(() => ''); throw new Error('resend ' + r.status + ' ' + txt.slice(0, 200)); }
+        return await r.json();
+      } finally { clearTimeout(t); }
+    }
+  };
+}
+
 // returns { store: bool, customer: bool }
 async function sendOrderEmails(o, shot, settings, transportOverride) {
   const out = { store: false, customer: false };
-  const user = process.env.MAIL_USER, pass = process.env.MAIL_PASS;
-  const transport = transportOverride || (nodemailer && user && pass ? nodemailer.createTransport({ service: 'gmail', auth: { user, pass }, connectionTimeout: 6000, greetingTimeout: 6000, socketTimeout: 8000 }) : null);
+  const user = process.env.MAIL_USER, pass = process.env.MAIL_PASS, rkey = process.env.RESEND_API_KEY;
+  const transport = transportOverride || (rkey ? resendTransport(rkey) : (nodemailer && user && pass ? nodemailer.createTransport({ service: 'gmail', auth: { user, pass }, connectionTimeout: 6000, greetingTimeout: 6000, socketTimeout: 8000 }) : null));
   if (!transport) return out;
-  const from = `"Golden Interiors" <${user || 'orders@goldeninteriors.pk'}>`;
-  const to = (settings && settings.notifyTo) || process.env.MAIL_TO || user;
+  const from = rkey && !transportOverride ? (process.env.MAIL_FROM || 'Golden Interiors <orders@goldeninteriors.pk>') : `"Golden Interiors" <${user || 'orders@goldeninteriors.pk'}>`;
+  const to = (settings && settings.notifyTo) || process.env.MAIL_TO || user || (rkey ? 'goldeninteriorspk@gmail.com' : '');
   const hasShot = !!shot;
   const att = [];
   if (hasShot) {
