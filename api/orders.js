@@ -95,7 +95,7 @@ module.exports = async (req, res) => {
       // cash on delivery outside Karachi needs an advance (amount set in Admin > Settings, default Rs. 500) and its payment screenshot
       const settings = cfg.settings || null;
       const adv = settings && settings.advance != null ? Number(settings.advance) : 500;
-      o.advance = o.payment === 'Cash on delivery' && !/^\s*karachi\s*$/i.test(o.city) && adv > 0 ? adv : 0;
+      o.advance = o.payment === 'Cash on delivery' && !/\b(karachi|khi)\b/i.test(o.city) && adv > 0 ? adv : 0;
       let shot = '';
       const rawShot = b && typeof b.shot === 'string' ? b.shot : '';
       if (rawShot && rawShot.length <= 1000000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(rawShot) && (o.payment === 'Bank transfer' || o.advance > 0)) shot = rawShot;

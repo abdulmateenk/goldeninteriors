@@ -244,7 +244,7 @@ if(PG=='checkout')(function(){
  const WA='03312523286';const ADV=Math.max(0,Math.round(+(ST.advance!=null?ST.advance:500))||0);let SHOT='';
  const rows=()=>cart.map(l=>({l,x:byId(l.id)||{id:l.id,n:l.name||'Product',svg:'<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="#eee"/></svg>'}}));
  const sub=()=>rows().reduce((a,r)=>a+r.l.price*r.l.q,0);
- const isKhi=c=>/^\s*karachi\s*$/i.test(c);
+ const isKhi=c=>/\b(karachi|khi)\b/i.test(c);
  const fee=c=>c.trim()?(isKhi(c)?DEL.karachi:DEL.other):null;
  const vname=l=>Object.values(l.sel||{}).filter(Boolean).join(' · ');
  const err=(id,m)=>{const e=$('#e-'+id);if(e)e.textContent=m||'';const i=$('#'+id);if(i)i.classList.toggle('bad',!!m)};

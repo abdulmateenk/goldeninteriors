@@ -414,3 +414,11 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 
 .pc.so .im img,.pc.so .im svg{filter:grayscale(1);opacity:.5}.pc .tag.soldout{background:#444!important;color:#fff!important}
 .sht{color:#b5403f;font-weight:600}
+/* mobile: the cut price sits between the title and the main price */
+@media (max-width:600px){
+.pc .pr{display:flex!important;flex-direction:column-reverse!important;align-items:flex-start!important;gap:1px!important;height:auto!important;overflow:visible!important;white-space:normal!important;margin-top:2px!important}
+.pc .pr .wo{display:block!important;font-size:12.5px!important;line-height:1.2!important}
+.pc .was{display:none!important}
+.pc .pr:not(:has(.wo))::after{content:"";display:block;height:15px}
+.grid:not(:has(.wo)) .pc .pr::after{display:none}
+}
