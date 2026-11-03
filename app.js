@@ -74,6 +74,7 @@ function optionsFor0(x){
  if(x.id=='helix-floor-lamp')return[{name:'Finish',type:'swatch',values:IMG(SW([['Black','#2A2A28'],['Gold','#A67C2E']]),[0,1])},{name:'Light',type:'button',values:IMG([{label:'Warm white 3000K'},{label:'Cool white 4000K'}],[0,2])}];
  if(x.id=='tub-armchair')return[{name:'Fabric',type:'swatch',values:IMG(SW([['Grey','#8A8478'],['Beige','#D8CDB8'],['Olive','#7C8160']]),[0,1,2])}];
  if(x.id=='woven-stool')return[{name:'Size',type:'button',values:IMG([{label:'Small'},{label:'Medium'},{label:'Large'}],[0,1,2])}];
+ if(x.id!='dried-pampas-stems')return[];
  return[{name:'Bundle',type:'button',values:IMG([{label:'12 stems'},{label:'24 stems'}],[0,2])},{name:'Colour',type:'swatch',values:IMG(SW([['Natural','#CDA06A'],['Bleached','#E9DFC9']]),[0,1])}]}
 function clockViews(a,color){const s=clk(Object.assign({},a,{fr:color||a.fr||'#A67C2E'}));const inner=s.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
  return[s,s.replace('viewBox="0 0 200 200"','viewBox="45 45 110 110"'),`<svg viewBox="0 0 400 400" aria-hidden="true"><rect width="400" height="400" fill="#EAE5D9"/><rect y="318" width="400" height="82" fill="#CFC4AE"/><ellipse cx="200" cy="238" rx="96" ry="10" fill="#000" opacity=".08"/><g transform="translate(112 60) scale(.88)">${inner}</g><rect x="120" y="300" width="160" height="14" fill="#8C7650"/><rect x="132" y="314" width="8" height="40" fill="#8C7650"/><rect x="260" y="314" width="8" height="40" fill="#8C7650"/></svg>`]}

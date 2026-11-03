@@ -45,7 +45,7 @@ if(PAGE=='login'){
 if(!store.get('gi-admin',null)){location.replace('login');return}
 /* ---------- data ---------- */
 const STATUS=['Pending','Processing','Shipped','Delivered','Returned','Cancelled'];
-const SP=[['two-tone-floor-vase','Two-Tone Glazed Floor Vase','Vases',24500,8],['dried-pampas-stems','Dried Pampas Stems','Decor & Ornaments',3500,40],['ivory-floor-vase','Ivory Sculpted Floor Vase','Vases',18500,5],['chevron-vase-trio','Chevron Vase Trio','Vases',38000,3],['chevron-floor-vase','Chevron Floor Vase','Vases',16500,9],['helix-floor-lamp','Helix LED Floor Lamp','Decor & Ornaments',29500,12],['tub-armchair','Linen Tub Armchair','Decor & Ornaments',46000,4],['woven-stool','Woven Rattan Stool','Decor & Ornaments',12500,15],['aurum-round-clock','Birch Round Wall Clock','Wall Clocks',14500,22],['noir-minimal-clock','Linea Minimal Wall Clock','Wall Clocks',11500,18],['walnut-ring-clock','Walnut Ring Clock','Wall Clocks',13500,14],];
+const SP=[['two-tone-floor-vase','Two-Tone Glazed Floor Vase','Vases',24500,8],['dried-pampas-stems','Dried Pampas Stems','Decor & Ornaments',3500,40],['ivory-floor-vase','Ivory Sculpted Floor Vase','Vases',18500,5],['chevron-vase-trio','Chevron Vase Trio','Vases',38000,3],['chevron-floor-vase','Chevron Floor Vase','Vases',16500,9],['helix-floor-lamp','Helix LED Floor Lamp','Decor & Ornaments',29500,12],['tub-armchair','Linen Tub Armchair','Decor & Ornaments',46000,4],['woven-stool','Woven Rattan Stool','Decor & Ornaments',12500,15],['aurum-round-clock','Birch Round Wall Clock','Wall Clocks',14500,22],['noir-minimal-clock','Linea Minimal Wall Clock','Wall Clocks',11500,18],['walnut-ring-clock','Walnut Ring Clock','Wall Clocks',13500,14],['golden-couple-sculpture','Golden Couple Sculpture','Figurines',5000,3],['embrace-sculpture','Embrace Sculpture','Figurines',5500,2],];
 const LP=[['new','New Arrivals'],['featured','Featured'],['explore','Explore by Collection'],['clocks','Wall Clocks']];
 const lpBox=(sel,id)=>`<div class="lp" id="${id}">${LP.map(([k,t])=>`<label class="cc"><input type="checkbox" value="${k}" ${sel.includes(k)?'checked':''}> ${t}</label>`).join('')}</div>`;
 const getCustom=()=>store.get('gi-products',[]);
@@ -351,7 +351,8 @@ function productsPage(){
    else if(confirm('Delete this sample product? It will be hidden from the store and you can restore it later.')){const ov=getOv();ov[id]=Object.assign({},ov[id],{hidden:true});store.set('gi-overrides',ov);draw()}}
   else if(b.dataset.r){const ov=getOv();if(ov[b.dataset.r])delete ov[b.dataset.r].hidden;store.set('gi-overrides',ov);draw()}});
  draw();
- apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;if(r.json.overrides){if(JSON.stringify(r.json.overrides)!==JSON.stringify(getOv())){try{localStorage.setItem('gi-overrides',JSON.stringify(r.json.overrides))}catch(e){}draw()}}else if(Object.keys(getOv()).length&&syncKey())apiConfig('PUT',{overrides:getOv()})})}
+ apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;if(r.json.overrides){if(JSON.stringify(r.json.overrides)!==JSON.stringify(getOv())){try{localStorage.setItem('gi-overrides',JSON.stringify(r.json.overrides))}catch(e){}draw()}}
+  const ov=getOv();let ch=false;SP.forEach(p=>{if(!ov[p[0]]||ov[p[0]].stock==null){ov[p[0]]=Object.assign({},ov[p[0]],{stock:p[4]});ch=true}});if(ch){store.set('gi-overrides',ov);draw()}else if(!r.json.overrides&&Object.keys(ov).length&&syncKey())apiConfig('PUT',{overrides:ov})})}
 function discountPage(){
  const CAT=catVals();
  const get=()=>store.get('gi-discounts',[]);
