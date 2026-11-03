@@ -505,7 +505,7 @@ body.pg-ck .top .logo img{height:68px!important}
 /* coupon box */
 .cpn{padding:14px 0 2px;border-bottom:1px solid var(--line)}
 .cpr{display:flex;gap:8px}
-.cpr input{flex:1 1 auto;min-width:0;height:44px;padding:0 14px;border:1px solid #cfcbc2;background:#fff;font:500 15px "Hanken Grotesk",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;border-radius:0}
+.cpr input{flex:1 1 auto;min-width:0;height:44px;padding:0 14px;border:1px solid #cfcbc2;background:#fff;font:500 16px "Hanken Grotesk",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;border-radius:0;color:#1B1B1A!important;-webkit-text-fill-color:#1B1B1A!important;caret-color:#1B1B1A;background-color:#fff!important;opacity:1;-webkit-appearance:none;appearance:none}
 .cpr input::placeholder{text-transform:none;letter-spacing:0;color:#8a8780}
 .cpr button{flex:none;height:44px;padding:0 20px;border:1px solid var(--ink);background:var(--ink);color:#fff;font:500 14px "Hanken Grotesk",system-ui,sans-serif;cursor:pointer}
 .cpr button:disabled{opacity:.6;cursor:wait}
@@ -513,3 +513,4 @@ body.pg-ck .top .logo img{height:68px!important}
 .cpo b{overflow-wrap:anywhere}
 .cpo button{background:none;border:0;text-decoration:underline;color:#1f6b2d;cursor:pointer;font:inherit;font-size:13px;flex:none}
 .cpm{min-height:0;margin:6px 0 8px;font-size:13px}.cpm:empty{display:none}.cpm.err{color:#b3261e}.cpm.ok{color:#1f6b2d}
+.cpr input:-webkit-autofill{-webkit-text-fill-color:#1B1B1A;-webkit-box-shadow:0 0 0 40px #fff inset}
