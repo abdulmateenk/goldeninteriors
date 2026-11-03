@@ -1,6 +1,6 @@
 // Golden Interiors shared site settings (header categories and their sub-headings).
-//   GET /api/config            (public)  -> { cats, discounts, promo, rule, settings }   (each null when never saved)
-//   PUT /api/config            (admin)   any of { cats, discounts, promo, rule, settings }; cats:null = built-in categories
+//   GET /api/config            (public)  -> { cats, discounts, promo, rule, settings, overrides }   (each null when never saved)
+//   PUT /api/config            (admin)   any of { cats, discounts, promo, rule, settings, overrides }; cats:null = built-in categories
 const crypto = require('crypto');
 const { cmd, configured } = require('./_kv');
 const KEY = 'gi:config';
@@ -64,19 +64,43 @@ function cleanSettings(s) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
   return { delivery: { karachi: n(d.karachi, 400), other: n(d.other, 600) }, bank: { title: str(b.title, 80), bank: str(b.bank, 80), number: str(b.number, 60), iban: str(b.iban, 60), note: str(b.note, 300) }, advance: n(s.advance, 500), notifyTo: email };
 }
+function cleanOverrides(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+  const ids = Object.keys(o);
+  if (ids.length > 600) return null;
+  const out = {};
+  for (const id of ids) {
+    if (!/^[\w-]{1,80}$/.test(id) || !o[id] || typeof o[id] !== 'object') continue;
+    const e = o[id], r = {};
+    const nn = (v, max) => { const x = Number(v); return Number.isFinite(x) && x >= 0 && x <= max ? Math.round(x) : null; };
+    if (e.stock != null) { const v = nn(e.stock, 100000); if (v !== null) r.stock = v; }
+    if (e.price != null) { const v = nn(e.price, 100000000); if (v) r.price = v; }
+    if ('compareAt' in e) { const v = nn(e.compareAt, 100000000); r.compareAt = v || null; }
+    if (e.hidden) r.hidden = true;
+    if (typeof e.name === 'string') r.name = str(e.name, 160);
+    if (typeof e.tag === 'string') r.tag = str(e.tag, 30);
+    if (typeof e.description === 'string') r.description = String(e.description).slice(0, 4000);
+    if (typeof e.material === 'string') r.material = str(e.material, 200);
+    if (typeof e.dimensions === 'string') r.dimensions = str(e.dimensions, 200);
+    if (Array.isArray(e.showOn)) r.showOn = e.showOn.slice(0, 10).map(x => str(x, 30)).filter(Boolean);
+    if (Array.isArray(e.also)) r.also = e.also.slice(0, 10).map(x => str(x, 80)).filter(Boolean);
+    out[id] = r;
+  }
+  return out;
+}
 function cleanPromo(p) {
   if (!p || typeof p !== 'object') return null;
   return { on: !!p.on, text: str(p.text, 160) };
 }
 module.exports = async (req, res) => {
   try {
-    if (!configured()) return send(res, 200, { cats: null, discounts: null, promo: null, rule: null, settings: null });
+    if (!configured()) return send(res, 200, { cats: null, discounts: null, promo: null, rule: null, settings: null, overrides: null });
     const load = async () => { try { const raw = await cmd(['GET', KEY]); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } };
     if (req.method === 'GET') {
       const b = await load();
       let settings = b.settings || null;
       if (settings && !isAdmin(req)) { settings = Object.assign({}, settings); delete settings.notifyTo; }   // the notification address stays private
-      return send(res, 200, { cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings });
+      return send(res, 200, { cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
     }
     if (req.method === 'PUT') {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
@@ -98,6 +122,10 @@ module.exports = async (req, res) => {
       if ('settings' in b) {
         if (b.settings === null) delete cur.settings;
         else { const t = cleanSettings(b.settings); if (!t) return send(res, 400, { error: 'invalid_settings' }); cur.settings = t; }
+      }
+      if ('overrides' in b) {
+        if (b.overrides === null) delete cur.overrides;
+        else { const v = cleanOverrides(b.overrides); if (!v) return send(res, 400, { error: 'invalid_overrides' }); cur.overrides = v; }
       }
       if ('rule' in b) {
         if (b.rule === null) delete cur.rule;

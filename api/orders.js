@@ -79,26 +79,39 @@ module.exports = async (req, res) => {
       if (!o) return send(res, 400, { error: 'invalid_order' });
       const cid = str(b.cid, 64).replace(/[^\w-]/g, '');
       if (cid) { const ex = await cmd(['GET', 'gi:cid:' + cid]); if (ex) return send(res, 200, { id: ex, duplicate: true }); }
-      const n = await cmd(['INCR', SEQ]);
-      const id = 'GI-' + (FIRST_ID + Number(n));
-      const now = new Date().toISOString();
+      let cfg = {};
+      try { const raw = await cmd(['GET', 'gi:config']); cfg = raw ? JSON.parse(raw) || {} : {}; } catch (e) { cfg = {}; }
+      // stock: refuse items the admin has set to 0 (or more than is left)
+      const ov = cfg.overrides && typeof cfg.overrides === 'object' ? cfg.overrides : {};
+      for (const i of o.items) {
+        const e = i.id && ov[i.id];
+        if (e && e.stock != null && Number.isFinite(Number(e.stock)) && (Number(e.stock) <= 0 || i.qty > Number(e.stock))) return send(res, 409, { error: 'out_of_stock', name: i.name, left: Math.max(0, Number(e.stock)) });
+      }
       // automatic order discount (same rule the storefront shows; the server works it out itself)
       let rule = { on: true, min: 30000, pct: 10 };
-      try { const raw = await cmd(['GET', 'gi:config']); const r = raw && JSON.parse(raw).rule; if (r && r.min > 0 && r.pct > 0 && r.pct < 100) rule = r; } catch (e) {}
+      { const r = cfg.rule; if (r && r.min > 0 && r.pct > 0 && r.pct < 100) rule = r; }
       const subtotal = o.items.reduce((s, i) => s + i.price * i.qty, 0);
       o.discount = rule.on && subtotal >= rule.min ? Math.round(subtotal * rule.pct / 100) : 0;
-      // cash on delivery outside Karachi needs an advance (amount set in Admin > Settings, default Rs. 500)
-      let settings = null;
-      try { const raw = await cmd(['GET', 'gi:config']); settings = raw ? JSON.parse(raw).settings || null : null; } catch (e) {}
+      // cash on delivery outside Karachi needs an advance (amount set in Admin > Settings, default Rs. 500) and its payment screenshot
+      const settings = cfg.settings || null;
       const adv = settings && settings.advance != null ? Number(settings.advance) : 500;
       o.advance = o.payment === 'Cash on delivery' && !/^\s*karachi\s*$/i.test(o.city) && adv > 0 ? adv : 0;
       let shot = '';
       const rawShot = b && typeof b.shot === 'string' ? b.shot : '';
       if (rawShot && rawShot.length <= 1000000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(rawShot) && (o.payment === 'Bank transfer' || o.advance > 0)) shot = rawShot;
       if (shot) o.hasShot = true;
-      const order = Object.assign({ id, date: pkDate(), status: 'Pending', source: 'website', createdAt: now, updatedAt: now }, o);
+      const n = await cmd(['INCR', SEQ]);
+      const id = 'GI-' + (FIRST_ID + Number(n));
+      const now = new Date().toISOString();
+      const order = Object.assign({ id, date: pkDate(), status: 'Pending', payStatus: 'Pending', source: 'website', createdAt: now, updatedAt: now }, o);
       await cmd(['HSET', HASH, id, JSON.stringify(order)]);
       if (shot) await cmd(['SET', 'gi:shot:' + id, shot]);
+      // take the ordered quantities out of the shared stock
+      try {
+        let ch = false;
+        for (const i of o.items) { const e = i.id && ov[i.id]; if (e && e.stock != null && Number.isFinite(Number(e.stock))) { e.stock = Math.max(0, Number(e.stock) - i.qty); ch = true; } }
+        if (ch) { cfg.overrides = ov; await cmd(['SET', 'gi:config', JSON.stringify(cfg)]); }
+      } catch (e) {}
       if (cid) await cmd(['SET', 'gi:cid:' + cid, id, 'EX', 604800]);
       let mail = { store: false, customer: false };
       try { mail = await sendOrderEmails(order, shot, settings); } catch (e) { console.error('email error', e && e.message); }

@@ -385,11 +385,11 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .pc .pr{display:flex;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden}
 .pc .pr .wo{font:500 13px "Hanken Grotesk",sans-serif;color:#222;text-decoration:line-through}
 .pc .was s{display:none}
-@media (max-width:380px){.pc .pr .wo{display:none}.pc .was s{display:inline}}
-@media (min-width:381px) and (max-width:600px){.pc .pr .wo{font-size:11.5px}.pc .pr{gap:6px;font-size:17px!important}}
+@media (max-width:389px){.pc .pr .wo{display:none}.pc .was s{display:inline}}
+@media (min-width:390px) and (max-width:600px){.pc .pr .wo{font-size:11.5px}.pc .pr{gap:6px;font-size:17px!important}}
 .pc .pr{justify-content:flex-start!important}
 .pc .was span{display:none}
-@media (min-width:381px){.pc .was{display:none!important}}
+@media (min-width:390px){.pc .was{display:none!important}}
 .gw .gb,.gb{display:none!important}
 .pc .im{border-radius:10px!important;overflow:hidden}
 .pc .im .tag{left:0!important;top:0!important;border-radius:0 0 10px 0!important;height:24px!important;padding:0 12px 0 11px!important}
@@ -406,4 +406,11 @@ footer #ql li,footer #ql a{font-family:"Times New Roman",Times,serif;font-size:1
 .pc .dn b{font-size:11px!important;line-height:1.2!important;-webkit-line-clamp:4!important}
 .grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:calc(var(--dnh,40px) + 9px)!important}
 @media (min-width:601px){.pc .dn{padding:5px 10px!important}.pc .dn b{font-size:12.5px!important;line-height:1.25!important;-webkit-line-clamp:3!important}.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:calc(var(--dnh,40px) + 9px)!important}}
-@media (max-width:380px){.pc .was{height:20px!important;min-height:20px!important;line-height:20px;margin-top:2px;overflow:hidden}.pc .was s{line-height:20px}}
+@media (max-width:389px){.pc .was{height:20px!important;min-height:20px!important;line-height:20px;margin-top:2px;overflow:hidden}.pc .was s{line-height:20px}}
+/* robust sizing: heights are minimums so text can never be clipped */
+.pc .dn b{-webkit-line-clamp:unset!important;display:block!important;overflow:visible!important}
+.pc .dn{overflow:visible!important}
+.head .more,.head a{white-space:nowrap}
+
+.pc.so .im img,.pc.so .im svg{filter:grayscale(1);opacity:.5}.pc .tag.soldout{background:#444!important;color:#fff!important}
+.sht{color:#b5403f;font-weight:600}
