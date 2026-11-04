@@ -132,7 +132,7 @@ function ordersPage(){pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Al
   $('#cm').onclick=closeM;
   $('#nf').onsubmit=e=>{e.preventDefault();let ok=true;const chk=(id,fn,m)=>{const el=$('#'+id),g=fn(el.value);el.parentNode.querySelector('.e').textContent=g?'':m;if(!g)ok=false};
    chk('nc',v=>v.trim().length>1,'Enter the customer name.');chk('np',v=>/^[+\d][\d\s-]{8,}$/.test(v.trim()),'Enter a valid phone number.');if(!ok)return;
-   const p=ps.find(x=>x.id==$('#nq').value),all=getOrders();const n=Math.max(...all.map(x=>parseInt(x.id.slice(3))))+1;
+   const p=ps.find(x=>x.id==$('#nq').value),all=getOrders();const n=String(Math.max(0,...all.map(x=>parseInt(x.id.slice(3))).filter(i=>i<1000))+1).padStart(4,'0');
    all.unshift({id:'GI-'+n,date:daysAgo(0),customer:$('#nc').value.trim(),phone:$('#np').value.trim(),city:$('#ni').value.trim()||'—',address:$('#na').value.trim()||'—',items:[{name:p.name,qty:Math.max(1,parseInt($('#nn').value)||1),price:p.price}],delivery:300,payment:$('#ny').value,status:'Pending'});saveOrders(all);closeM();draw()}}}
 function categoriesPage(){
  let list=getCats().map(c=>({key:c.key,name:c.name,value:c.value,sub:(c.sub||[]).map(s=>({name:s.name,url:s.url}))}));

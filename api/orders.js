@@ -9,7 +9,7 @@ const { cmd, configured } = require('./_kv');
 const { sendOrderEmails } = require('./_mail');
 const coupons = require('./_coupon');
 
-const HASH = 'gi:orders', SEQ = 'gi:orderseq', FIRST_ID = 2000;   // first customer order becomes GI-2001
+const HASH = 'gi:orders', SEQ = 'gi:orderseq2', FIRST_ID = 0;   // numbering restarted: the first customer order is GI-0001
 const STATUS = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Returned', 'Cancelled'];
 const PAY = ['Cash on delivery', 'Bank transfer'];
 
@@ -113,7 +113,7 @@ module.exports = async (req, res) => {
       if (rawShot && rawShot.length <= 1000000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(rawShot) && (o.payment === 'Bank transfer' || o.advance > 0)) shot = rawShot;
       if (shot) o.hasShot = true;
       const n = await cmd(['INCR', SEQ]);
-      const id = 'GI-' + (FIRST_ID + Number(n));
+      const id = 'GI-' + String(FIRST_ID + Number(n)).padStart(4, '0');
       const now = new Date().toISOString();
       const order = Object.assign({ id, date: pkDate(), status: 'Pending', payStatus: 'Pending', source: 'website', createdAt: now, updatedAt: now }, o);
       await cmd(['HSET', HASH, id, JSON.stringify(order)]);
