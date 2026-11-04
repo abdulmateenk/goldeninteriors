@@ -153,7 +153,7 @@ footer a{transition:color .25s}footer li a:hover{color:var(--lg)}footer .wp{colo
 .cd{text-decoration:none}
 .sw button.out{opacity:.4;position:relative;cursor:not-allowed}.sw button.out::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,transparent 46%,#d0443a 46%,#d0443a 54%,transparent 54%)}.bt button.out{opacity:.45;text-decoration:line-through;cursor:not-allowed}
 .stock.low{color:#B3702F}.stock.out{color:#B3402F}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;background:#777;border-color:#777}
-.cats a{white-space:nowrap}.cats ul{flex-wrap:nowrap;gap:clamp(14px,2.1vw,30px);padding:0 16px;overflow-x:auto;scrollbar-width:none}.cats ul::-webkit-scrollbar{display:none}.cats a{font-size:clamp(11.5px,1vw,13.5px);letter-spacing:.07em}.cats .mg{margin-left:10px}.cats .mg a{border:1px solid #5a4a22;padding:5px 16px;margin:6px 0;color:var(--lg)}.cats .mg a:hover{background:var(--lg);color:#000}.cats .mg a::after{display:none}
+.cats a{white-space:nowrap}.cats ul{flex-wrap:nowrap;gap:clamp(10px,1.5vw,24px);padding:0 16px;overflow-x:auto;scrollbar-width:none}.cats ul::-webkit-scrollbar{display:none}.cats a{font-size:clamp(11.5px,1vw,13.5px);letter-spacing:.07em}.cats .mg{margin-left:10px}.cats .mg a{border:1px solid #5a4a22;padding:5px 16px;margin:6px 0;color:var(--lg)}.cats .mg a:hover{background:var(--lg);color:#000}.cats .mg a::after{display:none}
 .bt button{color:#1B1B1A;background:#fff;-webkit-text-fill-color:#1B1B1A}.bt button[aria-pressed=true]{color:var(--lg);-webkit-text-fill-color:var(--lg);animation:pop .4s}.sw button[aria-pressed=true]{animation:pop .4s}
 .qty button{color:#1B1B1A;background:#fff;font-size:24px;line-height:1;-webkit-text-fill-color:#1B1B1A}.qty input{color:#1B1B1A;-webkit-text-fill-color:#1B1B1A}
 @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.1)}100%{transform:none}}
@@ -516,3 +516,4 @@ body.pg-ck .top .logo img{height:68px!important}
 .cpr input:-webkit-autofill{-webkit-text-fill-color:#1B1B1A;-webkit-box-shadow:0 0 0 40px #fff inset}
 /* hide a landing-page row that has no products */
 #home section:has(.grid:empty){display:none}
+@media (min-width:861px){.cats ul#catl{flex-wrap:nowrap!important;gap:clamp(8px,1.15vw,22px);padding:0 10px}.cats a{font-size:clamp(10px,.92vw,12.8px);letter-spacing:.05em}}
