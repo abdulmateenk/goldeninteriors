@@ -544,3 +544,9 @@ body.pg-ck .top .logo img{height:68px!important}
 .pc .dn{margin-top:8px!important}
 .grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:9px!important;margin-bottom:calc(70px + 8px)!important}
 @media (max-width:600px){.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:9px!important;margin-bottom:calc(58px + 8px)!important}.pc .dn{margin-top:6px!important}.pc .fr{margin-top:6px}}
+.pc .im{aspect-ratio:1/1!important;background:#f7f6f2!important}
+.pc .im img{background:#f7f6f2}
+.pc .fr{margin-top:4px;height:14px;line-height:14px}
+.pc .dn{margin-top:6px!important}
+.pc h3{margin-top:8px!important}
+.pc h3{min-height:0!important}
