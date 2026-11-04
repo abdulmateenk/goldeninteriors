@@ -109,6 +109,10 @@ function cleanPromo(p) {
   if (!p || typeof p !== 'object') return null;
   return { on: !!p.on, text: str(p.text, 160) };
 }
+function cleanAnnounce(a) {
+  if (!Array.isArray(a) || a.length > 3) return null;
+  return a.map(x => str(x, 140)).filter(Boolean);
+}
 module.exports = async (req, res) => {
   try {
     if (!configured()) return send(res, 200, { cats: null, discounts: null, promo: null, rule: null, settings: null, overrides: null });
@@ -118,7 +122,7 @@ module.exports = async (req, res) => {
       let settings = b.settings || null;
       if (settings && !isAdmin(req)) { settings = Object.assign({}, settings); delete settings.notifyTo; }   // the notification address stays private
       const coupons = isAdmin(req) && Array.isArray(b.coupons) ? b.coupons : undefined;
-      return send(res, 200, { coupons, cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
+      return send(res, 200, { coupons, announce: Array.isArray(b.announce) ? b.announce : null, cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
     }
     if (req.method === 'PUT') {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
@@ -136,6 +140,10 @@ module.exports = async (req, res) => {
       if ('coupons' in b) {
         if (b.coupons === null) delete cur.coupons;
         else { const c = cleanCoupons(b.coupons, cur.coupons); if (!c) return send(res, 400, { error: 'invalid_coupons' }); cur.coupons = c; }
+      }
+      if ('announce' in b) {
+        if (b.announce === null) delete cur.announce;
+        else { const n = cleanAnnounce(b.announce); if (!n) return send(res, 400, { error: 'invalid_announce' }); cur.announce = n; }
       }
       if ('promo' in b) {
         if (b.promo === null) delete cur.promo;

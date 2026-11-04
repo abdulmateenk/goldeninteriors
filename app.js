@@ -129,6 +129,7 @@ addEventListener('keydown',e=>{if(e.key=='Escape'&&RV.classList.contains('on'))c
 $('#co').onclick=()=>{if(!cart.length){toast('Your cart is empty');return}if(!matchMedia('(max-width:860px)').matches){location.href='checkout';return}document.body.classList.remove('co');openRV()};
 renderC();
 /* notification bar */
+try{const an=JSON.parse(localStorage.getItem('gi-announce')||'null'),bar=document.querySelector('.ann');if(bar&&Array.isArray(an)){if(!an.length)bar.style.display='none';else{bar.innerHTML=an.map((t,i)=>'<p class="am'+(i?'':' on')+'"></p>').join('');[...bar.children].forEach((e,i)=>e.textContent=an[i])}}}catch(e){}
 {const m=$$('.am');let k=0;if(m.length>1)setInterval(()=>{m[k].classList.remove('on');k=(k+1)%m.length;m[k].classList.add('on')},4000)}
 /* HOME */
 if(PG=='home'){
@@ -326,7 +327,7 @@ if(PG=='checkout')(function(OUT){let NOW=false,cart=OUT;
  function showBank(){const p=document.querySelector('input[name=pay]:checked').value,adv=advNow(),b=p=='Bank transfer'||adv>0;
   $('#bkb').style.display=b?'block':'none';$('#bkb .in').innerHTML=bankHtml();$$('.po').forEach(o=>o.classList.toggle('on',o.querySelector('input').checked));
   const n=$('#codn');if(n){n.style.display=adv>0?'block':'none';$('#codn-a').textContent=R(adv)+'/-'}
-  {const q=$('#shreq');if(q){q.textContent=adv>0?'(optional: attach it here if you have already paid the '+R(adv)+' advance)':'(optional, helps us verify your payment faster)';q.className=''}}
+  {const q=$('#shreq');if(q){q.textContent=adv>0?'(optional) Send your '+R(adv)+' advance and drop the slip here for a faster order process':'(optional, helps us verify your payment faster)';q.className=''}}
   const t=$('#bkt');if(t)t.textContent=adv>0?'Pay your '+R(adv)+' advance to this account':'Our bank account details'}
  function shotInit(){const f=$('#shotf'),dz=$('#drop');if(!f||!dz)return;
   const rd=file=>new Promise(res=>{if(!file||!/^image\//.test(file.type)){res(null);return}const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const m=1100,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);let q=.72,d=c.toDataURL('image/jpeg',q);while(d.length>600000&&q>.3){q-=.1;d=c.toDataURL('image/jpeg',q)}res(d.length<=900000?d:null)};im.onerror=()=>res(null);im.src=fr.result};fr.onerror=()=>res(null);fr.readAsDataURL(file)});
@@ -414,7 +415,7 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
 /* pick up changes made in the admin (header categories, discounts, store-wide message) from the server */
 (async function(){try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(!j)return;let ch=false;
  const cats=j.cats?JSON.stringify(j.cats):null;if((localStorage.getItem('gi-cats')||null)!==cats){if(cats)localStorage.setItem('gi-cats',cats);else localStorage.removeItem('gi-cats');ch=true}
- [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule],['gi-settings',j.settings],['gi-overrides',j.overrides]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
+ [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule],['gi-settings',j.settings],['gi-overrides',j.overrides],['gi-announce',j.announce]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
  if(ch&&!sessionStorage.getItem('gi-cfgr')){sessionStorage.setItem('gi-cfgr','1');location.reload()}}catch(e){}})();
 
 (function(){const sr=document.getElementById('sr'),sb=document.getElementById('sb');if(!sr||!sb)return;let y0=0,last=0,tm=0;

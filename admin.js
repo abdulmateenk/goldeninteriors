@@ -490,7 +490,7 @@ function sliderPage(){
  const links=[['','No link']].concat(CATS.filter(c=>c[0]!='home').map(c=>[c[2],c[1]]));
  const linkName=h=>{const f=links.find(l=>l[0]==h);if(f)return f[1];const m=/^product\?id=(.+)$/.exec(h||'');if(m){const p=allProducts().find(x=>x.id==m[1]);return p?'Product: '+p.name:h}return h||'No link'};
  const thumb=z=>z.layout=='clocks'?`<span class="sth sv">${CK[0].svg}${CK[2].svg}</span>`:(src(z.image)?`<img class="sth" src="${src(z.image)}" alt="">`:`<span class="sth sv"></span>`);
- pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Landing page slider <button class="btn2" id="ns">+ Add slide</button></h2>
+ pg.innerHTML=`<div class="cd2" style="margin-top:0"><h2>Top notification bar</h2><p class="mut">The short messages shown above the header on every page. Up to 3 messages, they rotate every few seconds. Leave all empty to hide the bar.</p><div style="display:grid;gap:10px;margin-top:12px"><input id="an1" maxlength="140" placeholder="Message 1" aria-label="Message 1"><input id="an2" maxlength="140" placeholder="Message 2 (optional)" aria-label="Message 2"><input id="an3" maxlength="140" placeholder="Message 3 (optional)" aria-label="Message 3"></div><p style="margin-top:12px"><button class="btn2" id="ans">Save notification text</button> <button class="btn2 o sm" id="anr">Reset to original</button> <span class="mut" id="anm" role="status"></span></p></div><div class="cd2"><h2>Landing page slider <button class="btn2" id="ns">+ Add slide</button></h2>
  <p class="mut">These slides rotate at the top of the home page. Use the arrows to change the order. Best image size: <b>1755 × 544 px</b> (wide banner). On phones the image is cropped to the middle, so keep the main part there.</p><div id="sl2" style="margin-top:14px"></div>
  <p style="margin-top:16px"><button class="btn2 o sm" id="rs">Reset to the original slides</button></p></div>`;
  function draw(){const l=get();$('#sl2').innerHTML=l.map((z,i)=>`<div class="srow"><div class="sth-w">${thumb(z)}</div><div class="sinfo"><b>${esc(z.title||'Untitled')}</b><span class="mut">${LAY[z.layout]||z.layout} · Links to: ${esc(linkName(z.link))}</span><span class="pill s-${z.active!==false?'Active':'Off'}" style="align-self:flex-start">${z.active!==false?'Showing':'Hidden'}</span></div>
@@ -520,6 +520,15 @@ function sliderPage(){
    if(errs.length){$('#se').innerHTML='<ul>'+errs.map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';return}
    const rec={id:z.id||'S'+Date.now().toString(36),layout:ly,image:ly=='clocks'?'':img,title:$('#stl').value.trim(),subtitle:ly=='image'?'':$('#ssu').value.trim(),button:ly=='image'?'':$('#sbt').value.trim(),link:lk,active:$('#sac').checked};
    const n=get();idx==null?n.push(rec):n[idx]=rec;put(n);closeM();draw()}}
+ const ANDEF=['24/7 Support. We are here whenever you need us.','Your order will be processed and delivered within 3 to 5 days.'];
+ const anSet=l=>{[0,1,2].forEach(i=>{$('#an'+(i+1)).value=l[i]||''})};
+ const anCur=()=>{const v=store.get('gi-announce',null);return Array.isArray(v)?v:ANDEF};
+ anSet(anCur());
+ apiConfig('GET').then(r=>{if(r.ok&&r.json&&Array.isArray(r.json.announce)){try{localStorage.setItem('gi-announce',JSON.stringify(r.json.announce))}catch(e){}anSet(r.json.announce)}});
+ const anSave=async l=>{const m=$('#anm');m.textContent='Saving…';try{localStorage.setItem('gi-announce',JSON.stringify(l))}catch(e){}
+  const r=await apiConfig('PUT',{announce:l});m.textContent=r.ok?'Saved. It is live for every visitor.':'Saved on this browser only. Log in as admin online to publish it for visitors.'};
+ $('#ans').onclick=()=>anSave([1,2,3].map(i=>$('#an'+i).value.trim()).filter(Boolean));
+ $('#anr').onclick=()=>{if(confirm('Go back to the two original messages?')){anSet(ANDEF);anSave(ANDEF.slice())}};
  $('#ns').onclick=()=>form();
  $('#rs').onclick=()=>{if(confirm('Go back to the three original slides? Your own slides will be removed.')){try{localStorage.removeItem('gi-slides')}catch(e){}draw()}};
  pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;const l=get(),d=b.dataset;
