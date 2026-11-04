@@ -65,6 +65,8 @@ function setMeta(n,c){let m=document.querySelector('meta[name="'+n+'"]');if(!m){
 try{const ov=JSON.parse(localStorage.getItem('gi-overrides')||'{}');P.slice().forEach(x=>{const o=ov[x.id];if(!o)return;
  if(o.hidden){[P,NA,CK].forEach(a=>{const i=a.indexOf(x);if(i>-1)a.splice(i,1)});return}
  if(Array.isArray(o.also))x.cs=o.also;if(o.name)x.n=o.name;if(o.price)x.p=o.price;if('compareAt' in o)x.o=o.compareAt||null;if('tag' in o)x.tag=o.tag||'';if(o.description)x.d=o.description;if(o.material!=null)x.mat=o.material;if(o.dimensions)x.dim=o.dimensions;if(o.stock!=null)x.stk=o.stock;if(Array.isArray(o.showOn)){x.show=o.showOn;if(o.showOn.includes('new')&&!NA.includes(x))NA.unshift(x);if(o.showOn.includes('clocks')&&!CK.includes(x))CK.push(x)}})}catch(e){}
+/* photos replaced from the admin (saved on the server, cached here) */
+try{const pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');P.forEach(x=>{const m=pm[x.id];if(!m||!Array.isArray(m.images)||!m.images.length)return;const im=m.images;if(!x.pi0)x.pi0=(x.photos&&x.photos.length?x.photos:x.custom&&x.custom.images&&x.custom.images.length?x.custom.images:x.imgs&&x.imgs.length?x.imgs:[x.photo,x.photo2,x.photo3].filter(Boolean).length?[x.photo,x.photo2,x.photo3].filter(Boolean):(x.im||[]).map(k=>IM[k]).filter(Boolean)).slice();x.photos=im.slice();x.photo=im[0];x.photo2=im[1]||null;x.photo3=im[2]||null;x.imgs=im.slice();x.im=x.im||[];if(x.custom)x.custom=Object.assign({},x.custom,{images:im.slice()})})}catch(e){}
 /* products added from the admin area (kept in this browser until a backend is connected) */
 try{(JSON.parse(localStorage.getItem('gi-products')||'[]')).forEach(c=>{const x={id:c.id,n:c.name,c:c.category,p:c.price,o:c.compareAt||null,tag:c.tag||'',imgs:c.images,d:c.description,dim:c.dimensions,sd:c.sizeDims,mat:c.material,care:c.care,custom:c,cs:Array.isArray(c.also)?c.also:[],from:!!(c.variants&&new Set(c.variants.map(v=>v.price)).size>1)};x.show=Array.isArray(c.showOn)?c.showOn:(x.tag=='New'?['new']:[]).concat(x.c=='Wall Clocks'?['clocks']:[],x.o?['sale']:[]);P.push(x);if(x.c=='Wall Clocks'||x.show.includes('clocks'))CK.push(x);if(x.show.includes('new')||(!Array.isArray(c.showOn)&&x.tag=='New'))NA.unshift(x)})}catch(e){}
 const SW=(a)=>a.map(v=>({label:v[0],swatch:v[1],color:v[2]}));
@@ -84,7 +86,7 @@ function clockViews(a,color){const s=clk(Object.assign({},a,{fr:color||a.fr||'#A
 function localProduct(id){const x=P.find(p=>p.id==id);if(!x)return null;
  if(x.custom){const c=x.custom;return{id:c.id,name:c.name,category:c.category,price:c.price,compareAt:c.compareAt||null,tag:c.tag||'',description:c.description,pos:'',options:c.options||[],variants:c.variants||[],dimensions:c.dimensions||[],sizeDims:c.sizeDims||{},material:c.material,care:c.care,careGuide:GUIDE[GBY[x.id]||GROUP[x.c]]||null,stock:c.stock,images:c.images}}
  const o={id:x.id,name:x.n,category:x.c,price:x.p,compareAt:x.o||null,tag:x.tag||'',description:x.d,pos:x.pos||'',options:optionsFor(x),dimensions:x.dim,material:x.mat,care:x.care,careGuide:GUIDE[GBY[x.id]||GROUP[x.c]]||null,stock:x.stk!=null?x.stk:24};
- if(x.photo){o.images=[x.photo,x.photo2,x.photo3].filter(Boolean)}else if(x.svg&&x.a){const ph=x.photo?[x.photo].concat(x.photo2?[x.photo2]:[]):[];o.images=ph.concat(clockViews(x.a));o.recolor=c=>ph.concat(clockViews(x.a,c))}else if(x.svg){o.images=[x.svg]}else o.images=x.im.map(k=>IM[k]);return o}
+ if(x.photos&&x.photos.length){o.images=x.photos.slice()}else if(x.photo){o.images=[x.photo,x.photo2,x.photo3].filter(Boolean)}else if(x.svg&&x.a){const ph=x.photo?[x.photo].concat(x.photo2?[x.photo2]:[]):[];o.images=ph.concat(clockViews(x.a));o.recolor=c=>ph.concat(clockViews(x.a,c))}else if(x.svg){o.images=[x.svg]}else o.images=x.im.map(k=>IM[k]);return o}
 /* ---- BACKEND HOOKS ----
    Set API_BASE to your server (e.g. 'https://api.goldeninteriors.pk/v1') and these calls go to it.
    Left empty, the site uses the sample products above. See backend-integration.md for the JSON shapes. */
@@ -416,6 +418,10 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
 (async function(){try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(!j)return;let ch=false;
  const cats=j.cats?JSON.stringify(j.cats):null;if((localStorage.getItem('gi-cats')||null)!==cats){if(cats)localStorage.setItem('gi-cats',cats);else localStorage.removeItem('gi-cats');ch=true}
  [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule],['gi-settings',j.settings],['gi-overrides',j.overrides],['gi-announce',j.announce]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
+ try{const ov=j.overrides;if(ov&&typeof ov==='object'){const pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');let pc=false;
+ for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0){if(!pm[id]||pm[id].v!==o.pv){const rr=await fetch('/api/pimg?id='+encodeURIComponent(id),{cache:'no-store'});if(rr.ok){const jj=await rr.json();if(jj&&Array.isArray(jj.images)&&jj.images.length){pm[id]={v:o.pv,images:jj.images};pc=true}}}}}
+ for(const id of Object.keys(pm)){if(!(ov[id]&&ov[id].photos>0)){delete pm[id];pc=true}}
+ if(pc){localStorage.setItem('gi-pimg',JSON.stringify(pm));ch=true}}}catch(e){}
  if(ch&&!sessionStorage.getItem('gi-cfgr')){sessionStorage.setItem('gi-cfgr','1');location.reload()}}catch(e){}})();
 
 (function(){const sr=document.getElementById('sr'),sb=document.getElementById('sb');if(!sr||!sb)return;let y0=0,last=0,tm=0;

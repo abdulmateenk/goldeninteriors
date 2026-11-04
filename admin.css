@@ -131,3 +131,5 @@ table.t.ot td.full{grid-column:1/-1}
 table.t.ot td.act{display:flex;gap:8px;flex-wrap:wrap}table.t.ot td.act .btn2{padding:7px 12px;font-size:12.5px}
 table.t.ot select,table.t.ot input.tk{width:100%;max-width:none;font-size:13px;padding:6px 8px}
 }
+
+.imgs .im .ima{position:absolute;left:0;right:0;bottom:18px;display:flex;justify-content:center;gap:3px}.imgs .im .ima button{position:static;width:24px;height:22px;font-size:14px;line-height:1}.imgs .im{height:130px}

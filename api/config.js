@@ -83,6 +83,7 @@ function cleanOverrides(o) {
     if (typeof e.material === 'string') r.material = str(e.material, 200);
     if (typeof e.dimensions === 'string') r.dimensions = str(e.dimensions, 200);
     if (Array.isArray(e.showOn)) r.showOn = e.showOn.slice(0, 10).map(x => str(x, 30)).filter(Boolean);
+    if (e.photos != null) { const v = nn(e.photos, 20); if (v) { r.photos = v; r.pv = nn(e.pv, 9e15) || 1; } }
     if (Array.isArray(e.also)) r.also = e.also.slice(0, 10).map(x => str(x, 80)).filter(Boolean);
     out[id] = r;
   }

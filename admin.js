@@ -25,6 +25,7 @@ const catLbl=v=>{const c=getCats().find(c=>c.value==v);return c?c.name:v};
 async function apiShot(id){if(!NET)return null;try{const k=syncKey(),r=await fetch('/api/orders?shot='+encodeURIComponent(id),{headers:k?{'x-admin-key':k}:{},cache:'no-store'});if(!r.ok)return null;const j=await r.json();return j&&j.shot||null}catch(e){return null}}
 async function apiConfig(method,body,key){if(!NET)return{status:0,ok:false,json:null};const k=key||syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
  try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/config',{method,headers:h,body:body?JSON.stringify(body):undefined,signal:c.signal,cache:'no-store'});let j=null;try{j=await r.json()}catch(e){}return{status:r.status,ok:r.ok,json:j}}catch(e){return{status:0,ok:false,json:null}}finally{clearTimeout(t)}}
+async function apiPimg(body){if(!NET)return{status:0,ok:false};const k=syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),30000);try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/pimg',{method:'PUT',headers:h,body:JSON.stringify(body),signal:c.signal,cache:'no-store'});return{status:r.status,ok:r.ok}}catch(e){return{status:0,ok:false}}finally{clearTimeout(t)}}
 const iso=d=>d.toISOString().slice(0,10);
 const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
 const fdate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -317,7 +318,7 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
   addPage(`Saved “${esc(name)}” with ${V.length} variants. <a href="product?id=${id}">View it on the store</a>`);scrollTo(0,0)}}
 function productsPage(){
  let q='',cat='';const CAT=catVals();
- const thumb=p=>{if(p.custom){return p.img?`<img class="th2" src="${p.img}" alt="">`:''}const cp=P.find(x=>x.id==p.id);if(!cp)return'';return cp.photo?`<img class="th2" src="${cp.photo}" alt="">`:cp.svg?`<span class="th2 sv">${cp.svg}</span>`:(cp.imgs&&cp.imgs[0]?`<img class="th2" src="${cp.imgs[0]}" alt="">`:cp.im&&cp.im[0]?`<img class="th2" src="${IM[cp.im[0]]}" alt="">`:'')};
+ const thumb=p=>{try{const m=JSON.parse(localStorage.getItem('gi-pimg')||'{}')[p.id];if(m&&m.images&&m.images[0])return`<img class="th2" src="${m.images[0]}" alt="">`}catch(e){}if(p.custom){return p.img?`<img class="th2" src="${p.img}" alt="">`:''}const cp=P.find(x=>x.id==p.id);if(!cp)return'';return cp.photo?`<img class="th2" src="${cp.photo}" alt="">`:cp.svg?`<span class="th2 sv">${cp.svg}</span>`:(cp.imgs&&cp.imgs[0]?`<img class="th2" src="${cp.imgs[0]}" alt="">`:cp.im&&cp.im[0]?`<img class="th2" src="${IM[cp.im[0]]}" alt="">`:'')};
  const saved=new URLSearchParams(location.search).get('saved');
  pg.innerHTML=`${saved?`<div class="ok2" style="display:block" role="status">Saved changes to “${esc(saved)}”.</div>`:''}<div class="cd2" style="margin-top:0"><h2>All products <a class="btn2" href="add-product">+ Add Product</a></h2>
  <div class="tool"><input id="fq" type="search" placeholder="Search products" aria-label="Search products"><select id="fc" aria-label="Filter by category"><option value="">All categories</option>${CAT.map(c=>`<option value="${esc(c)}">${esc(catLbl(c))}</option>`).join('')}</select><span class="mut" id="cnt"></span></div>
@@ -337,14 +338,40 @@ function productsPage(){
   <label class="f">Stock<input id="es" type="number" min="0" value="${b.stock}"></label><label class="f">Tag<select id="et">${['','New','Sale'].map(t=>`<option value="${t}" ${g('tag',cp.tag||'')==t?'selected':''}>${t||'None'}</option>`).join('')}</select></label>
   ${alsoBox('eal',g('also',cp.cs||[]))}<div class="f w"><span>Show on the landing page</span>${lpBox(g('showOn',(NA.includes(cp)?['new']:[]).concat(CK.includes(cp)?['clocks']:[],cp.o?['sale']:[])),'elp')}</div><label class="f w">Description<textarea id="ed" rows="3">${esc(g('description',cp.d||''))}</textarea></label>
   <label class="f w">Material<textarea id="em2" rows="2">${esc(g('material',cp.mat||''))}</textarea></label>
-  <label class="f w">Dimensions (one per line, “Label: value”)<textarea id="edm" rows="4">${esc((g('dimensions',cp.dim||[])).map(d=>d[0]+': '+d[1]).join('\n'))}</textarea></label></div>
+  <label class="f w">Dimensions (one per line, “Label: value”)<textarea id="edm" rows="4">${esc((g('dimensions',cp.dim||[])).map(d=>d[0]+': '+d[1]).join('\n'))}</textarea></label>
+  <div class="f w"><span>Photos <small class="mut">The first photo is the main image. Photos are shrunk and converted to WebP automatically.</small></span><div class="imgs" id="eim"></div><div class="drop" id="edz" style="margin-top:10px">Click to add photos<input type="file" id="efi" accept="image/*" multiple hidden></div><input type="file" id="erf" accept="image/*" hidden><p class="mut" id="eimsg" role="status"></p><button type="button" class="btn2 o sm" id="erest" style="display:none">Restore the original photos</button></div></div>
   <div class="er2" id="ee" role="alert"></div><div style="margin-top:16px;display:flex;gap:10px"><button class="btn2" type="submit">Save changes</button><button class="btn2 o" type="button" id="ec">Cancel</button></div></form>`);
   $('#ec').onclick=closeM;
-  $('#ef').onsubmit=e=>{e.preventDefault();const pr=+$('#ep').value,cm=+$('#eo').value||null;
+  /* photos */
+  const base=(()=>{const m=cp.custom&&cp.custom.images&&cp.custom.images.length?cp.custom.images:cp.imgs&&cp.imgs.length?cp.imgs:[cp.photo,cp.photo2,cp.photo3].filter(Boolean).length?[cp.photo,cp.photo2,cp.photo3].filter(Boolean):(cp.im||[]).map(k=>IM[k]).filter(Boolean);return m.slice()})();
+  const pmLoc=(()=>{try{return JSON.parse(localStorage.getItem('gi-pimg')||'{}')}catch(e){return{}}})();
+  const orig=(pmLoc[id]&&pmLoc[id].images&&pmLoc[id].images.length?pmLoc[id].images:base).slice();
+  let eimgs=orig.slice(),rpl=-1;const vars=(cp.custom&&cp.custom.variants)||[],hasV=vars.length>0,used=new Set();vars.forEach(v=>{if(v.colourImage!=null)used.add(+v.colourImage);if(v.sizeImage!=null)used.add(+v.sizeImage)});
+  const canRm=i=>!hasV||(i==eimgs.length-1&&!used.has(i)&&eimgs.length>1);
+  const eshow=()=>{$('#eim').innerHTML=eimgs.map((u,i)=>`<div class="im"><img src="${u}" alt="Photo ${i+1}">${i==0?'<b>Main</b>':'<b>'+(i+1)+'</b>'}${canRm(i)||!hasV&&eimgs.length>1?`<button type="button" data-rm="${i}" aria-label="Remove photo ${i+1}">×</button>`:''}<span class="ima">${!hasV&&i>0?`<button type="button" data-l="${i}" aria-label="Move earlier" title="Move earlier">‹</button>`:''}<button type="button" data-rp="${i}" aria-label="Replace photo" title="Replace this photo">↻</button>${!hasV&&i<eimgs.length-1?`<button type="button" data-r="${i}" aria-label="Move later" title="Move later">›</button>`:''}</span></div>`).join('')||'<p class="mut">No photos yet.</p>';
+   $('#erest').style.display=JSON.stringify(eimgs)!==JSON.stringify(base)?'inline-block':'none'};
+  const eToJpg=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=1000,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);let d=c.toDataURL('image/webp',.8);if(d.indexOf('data:image/webp')!==0)d=c.toDataURL('image/jpeg',.78);res(d)};im.onerror=()=>res(null);im.src=r.result};r.onerror=()=>res(null);r.readAsDataURL(f)});
+  $('#eim').onclick=e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+   if(d.rm!=null){eimgs.splice(+d.rm,1)}else if(d.l!=null){const i=+d.l;[eimgs[i-1],eimgs[i]]=[eimgs[i],eimgs[i-1]]}else if(d.r!=null){const i=+d.r;[eimgs[i+1],eimgs[i]]=[eimgs[i],eimgs[i+1]]}else if(d.rp!=null){rpl=+d.rp;$('#erf').click();return}eshow()};
+  $('#edz').onclick=()=>$('#efi').click();
+  $('#efi').onchange=async e=>{for(const f of [...e.target.files]){if(eimgs.length>=10)break;const u=await eToJpg(f);if(u)eimgs.push(u)}e.target.value='';eshow()};
+  $('#erf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f||rpl<0)return;const u=await eToJpg(f);if(u){eimgs[rpl]=u;eshow()}};
+  $('#erest').onclick=()=>{eimgs=base.slice();eshow()};
+  eshow();
+  $('#ef').onsubmit=async e=>{e.preventDefault();const pr=+$('#ep').value,cm=+$('#eo').value||null;
    if(!$('#en').value.trim()||!(pr>0)){$('#ee').textContent='Enter a name and a price.';return}
    if(cm&&cm<=pr){$('#ee').textContent='The compare price must be higher than the price.';return}
    const ov=getOv();ov[id]=Object.assign({},ov[id],{name:$('#en').value.trim(),price:pr,compareAt:cm,stock:Math.max(0,parseInt($('#es').value)||0),tag:$('#et').value,description:$('#ed').value.trim(),material:$('#em2').value.trim(),also:$$('#eal input:checked').map(i=>i.value).filter(v=>v!==cp.c),showOn:$$('#elp input:checked').map(i=>i.value),dimensions:$('#edm').value.split('\n').map(l=>{const i=l.indexOf(':');return i>0?[l.slice(0,i).trim(),l.slice(i+1).trim()]:null}).filter(d=>d&&d[0]&&d[1])});
-   store.set('gi-overrides',ov);closeM();draw()}};
+   const sameBase=JSON.stringify(eimgs)===JSON.stringify(base),sameNow=JSON.stringify(eimgs)===JSON.stringify(orig);let pmsg='';
+   if(!eimgs.length){$('#ee').textContent='Keep at least one photo.';return}
+   if(!sameNow){const btn=$('#ef button[type=submit]');btn.disabled=true;btn.textContent='Saving photos…';
+    const pm=(()=>{try{return JSON.parse(localStorage.getItem('gi-pimg')||'{}')}catch(e){return{}}})(),v=Date.now();
+    if(sameBase){delete pm[id];delete ov[id].photos;delete ov[id].pv;const r=await apiPimg({id,v,images:[]});if(!r.ok&&r.status&&r.status!=404)pmsg='The original photos are back on this browser, but the server did not confirm it.'}
+    else{const tot=eimgs.reduce((n,u)=>n+u.length,0);if(tot>880000){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent='These photos are too large together ('+Math.round(tot/1024)+' KB; the limit is about 860 KB). Remove a photo or use fewer or smaller photos.';return}
+     const r=await apiPimg({id,v,images:eimgs.slice()});if(!r.ok){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent=r.status==401?'The server did not accept the admin key, so the photos were not saved.':r.status==413?'The photos are too large to save.':'The photos could not be saved to the server. Check the connection and try again.';return}
+     pm[id]={v,images:eimgs.slice()};ov[id].photos=eimgs.length;ov[id].pv=v}
+    try{localStorage.setItem('gi-pimg',JSON.stringify(pm))}catch(er){pmsg='The browser storage is full, so the new photos may not show on this device until it is cleared.'}}
+   store.set('gi-overrides',ov);closeM();draw();if(pmsg)alert(pmsg)}};
  pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.e){const c=getCustom().find(x=>x.id==b.dataset.e);if(c)location.href='add-product?edit='+encodeURIComponent(c.id);else editBuilt(b.dataset.e)}
   else if(b.dataset.x){const id=b.dataset.x,c=getCustom().find(x=>x.id==id);
@@ -353,6 +380,7 @@ function productsPage(){
   else if(b.dataset.r){const ov=getOv();if(ov[b.dataset.r])delete ov[b.dataset.r].hidden;store.set('gi-overrides',ov);draw()}});
  draw();
  apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;if(r.json.overrides){if(JSON.stringify(r.json.overrides)!==JSON.stringify(getOv())){try{localStorage.setItem('gi-overrides',JSON.stringify(r.json.overrides))}catch(e){}draw()}}
+  if(r.json.overrides&&NET){(async()=>{try{const ov=r.json.overrides,pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');let pc=false;for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0&&(!pm[id]||pm[id].v!==o.pv)){const rr=await fetch('/api/pimg?id='+encodeURIComponent(id),{cache:'no-store'});if(rr.ok){const jj=await rr.json();if(jj&&jj.images&&jj.images.length){pm[id]={v:o.pv,images:jj.images};pc=true}}}}for(const id of Object.keys(pm)){if(!(ov[id]&&ov[id].photos>0)){delete pm[id];pc=true}}if(pc){localStorage.setItem('gi-pimg',JSON.stringify(pm));draw()}}catch(e){}})()}
   const ov=getOv();let ch=false;try{if(!localStorage.getItem('gi-restock-1')){[['golden-couple-sculpture',5],['embrace-sculpture',4]].forEach(q=>{ov[q[0]]=Object.assign({},ov[q[0]],{stock:q[1]})});ch=true;localStorage.setItem('gi-restock-1','1');if(syncKey())apiConfig('PUT',{overrides:ov})}}catch(e){}SP.forEach(p=>{if(!ov[p[0]]||ov[p[0]].stock==null){ov[p[0]]=Object.assign({},ov[p[0]],{stock:p[4]});ch=true}});if(ch){store.set('gi-overrides',ov);draw()}else if(!r.json.overrides&&Object.keys(ov).length&&syncKey())apiConfig('PUT',{overrides:ov})})}
 function discountPage(){
  const CAT=catVals();
