@@ -536,3 +536,11 @@ body.pg-ck .top .logo img{height:68px!important}
 .pc .pr{height:auto!important;white-space:nowrap;margin-bottom:18px!important}
 .pc .pr small{display:block;height:0;line-height:1.3;overflow:visible}
 .grid{align-items:stretch}
+/* card order: image, title, discount banner, From, price (left) */
+.pc .pr{margin-bottom:0!important;text-align:left!important;align-self:flex-start}
+.pc .fr{margin:8px 0 0;height:16px;line-height:16px;font:500 12px "Hanken Grotesk",sans-serif;color:#6b6b6b;text-align:left}
+.pc .fr.ph{visibility:hidden}
+.pc h3{margin-bottom:0!important}
+.pc .dn{margin-top:8px!important}
+.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:9px!important;margin-bottom:calc(70px + 8px)!important}
+@media (max-width:600px){.grid:has(.dn) .pc:not(:has(.dn)) h3{margin-top:9px!important;margin-bottom:calc(58px + 8px)!important}.pc .dn{margin-top:6px!important}.pc .fr{margin-top:6px}}

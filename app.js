@@ -16,7 +16,7 @@ const card=(x,i=0)=>{const d=dOf(x,x.p),now=d?d.p:x.p,was=d?x.p:(x.o&&x.o>x.p?x.
  let bn='';if(d){const r=d.r;let e='';if(r.end){const t=new Date(r.end+'T00:00:00');if(!isNaN(t))e=' · Ends '+t.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
   bn=r.msg?'<div class="dn"><b>'+h2(r.msg)+'</b>'+(e?'<span>'+h2(e.replace(/^ · /,''))+'</span>':'')+'</div>':'<div class="dn"><b>'+h2(r.name||'Special offer')+'</b><span>'+h2(d.off)+' OFF'+e+'</span></div>'}
  else if(PROMO.on&&PROMO.text)bn='<div class="dn"><b>'+h2(PROMO.text)+'</b></div>'
- return '<a class="pc'+(so?' so':'')+'" href="product?id='+x.id+'" style="animation-delay:'+(i*50)+'ms"><div class="im">'+(tg?'<span class="tag'+(so?' soldout':(sale?' sale':''))+'">'+h2(tg)+'</span>':'')+med(x)+'</div>'+bn+'<h3 title="'+h2(x.n)+'">'+h2(x.n)+'</h3><p class="pr">'+(x.from?'<small>From </small>':'')+R(now)+(save>0?'<s class="wo">'+R(was)+'</s>':'')+'</p>'+(save>0?'<p class="was"><s>'+R(was)+'</s></p>':'<p class="was ph" aria-hidden="true">&nbsp;</p>')+'</a>'};
+ return '<a class="pc'+(so?' so':'')+'" href="product?id='+x.id+'" style="animation-delay:'+(i*50)+'ms"><div class="im">'+(tg?'<span class="tag'+(so?' soldout':(sale?' sale':''))+'">'+h2(tg)+'</span>':'')+med(x)+'</div>'+'<h3 title="'+h2(x.n)+'">'+h2(x.n)+'</h3>'+bn+'<p class="fr'+(x.from?'':' ph')+'">From</p><p class="pr">'+R(now)+(save>0?'<s class="wo">'+R(was)+'</s>':'')+'</p>'+(save>0?'<p class="was"><s>'+R(was)+'</s></p>':'<p class="was ph" aria-hidden="true">&nbsp;</p>')+'</a>'};
 const cards=a=>a.map(x=>{try{return card(x)}catch(e){return''}}).join('');
 const MN=document.querySelector('main');const PG=MN.dataset.page;let KEY=MN.dataset.key||'';
 /* shared header, footer */
