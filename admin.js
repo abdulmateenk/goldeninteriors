@@ -353,7 +353,7 @@ function productsPage(){
   else if(b.dataset.r){const ov=getOv();if(ov[b.dataset.r])delete ov[b.dataset.r].hidden;store.set('gi-overrides',ov);draw()}});
  draw();
  apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;if(r.json.overrides){if(JSON.stringify(r.json.overrides)!==JSON.stringify(getOv())){try{localStorage.setItem('gi-overrides',JSON.stringify(r.json.overrides))}catch(e){}draw()}}
-  const ov=getOv();let ch=false;SP.forEach(p=>{if(!ov[p[0]]||ov[p[0]].stock==null){ov[p[0]]=Object.assign({},ov[p[0]],{stock:p[4]});ch=true}});if(ch){store.set('gi-overrides',ov);draw()}else if(!r.json.overrides&&Object.keys(ov).length&&syncKey())apiConfig('PUT',{overrides:ov})})}
+  const ov=getOv();let ch=false;try{if(!localStorage.getItem('gi-restock-1')){[['golden-couple-sculpture',5],['embrace-sculpture',4]].forEach(q=>{ov[q[0]]=Object.assign({},ov[q[0]],{stock:q[1]})});ch=true;localStorage.setItem('gi-restock-1','1');if(syncKey())apiConfig('PUT',{overrides:ov})}}catch(e){}SP.forEach(p=>{if(!ov[p[0]]||ov[p[0]].stock==null){ov[p[0]]=Object.assign({},ov[p[0]],{stock:p[4]});ch=true}});if(ch){store.set('gi-overrides',ov);draw()}else if(!r.json.overrides&&Object.keys(ov).length&&syncKey())apiConfig('PUT',{overrides:ov})})}
 function discountPage(){
  const CAT=catVals();
  const get=()=>store.get('gi-discounts',[]);
