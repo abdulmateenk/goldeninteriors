@@ -532,3 +532,7 @@ body.pg-ck .top .logo img{height:68px!important}
 .lbx button{position:absolute;background:rgba(255,255,255,.14);color:#fff;border:0;width:44px;height:44px;border-radius:50%;font-size:28px;line-height:1;cursor:pointer}
 .lbx .lx{top:16px;right:16px}.lbx .lp{left:16px;top:50%;margin-top:-22px}.lbx .ln{right:16px;top:50%;margin-top:-22px}
 .lbx.one .lp,.lbx.one .ln{display:none}
+.pc .im{flex:none!important}.pc .was{height:20px!important;min-height:20px!important;max-height:20px;overflow:hidden;flex-wrap:nowrap!important;white-space:nowrap}.pc{align-self:stretch}
+.pc .pr{height:auto!important;white-space:nowrap;margin-bottom:18px!important}
+.pc .pr small{display:block;height:0;line-height:1.3;overflow:visible}
+.grid{align-items:stretch}
