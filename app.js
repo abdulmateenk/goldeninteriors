@@ -70,6 +70,7 @@ try{(JSON.parse(localStorage.getItem('gi-products')||'[]')).forEach(c=>{const x=
 const SW=(a)=>a.map(v=>({label:v[0],swatch:v[1],color:v[2]}));
 function optionsFor(x){const r=optionsFor0(x);return x.photo?r.filter(q=>q.name!='Frame'):r}
 function optionsFor0(x){
+ if(x.id=='stylish-vase')return[];
  const IMG=(vals,idx)=>vals.map((v,i)=>Object.assign(v,{image:idx[i]}));
  if(x.c=='Vases')return[{name:'Finish',type:'swatch',values:IMG(SW([['Ivory','#E8E2D4'],['Sage','#9FB3A4'],['Charcoal','#3A3F3C']]),[0,1,3])},{name:'Size',type:'button',values:IMG([{label:'Small'},{label:'Medium'},{label:'Large'}],[0,1,2])}];
  if(x.c=='Wall Clocks')return[{name:'Frame',type:'swatch',values:SW([['Gold','#A67C2E','#A67C2E'],['Black','#1B1B1A','#1B1B1A'],['Walnut','#6B4A2B','#6B4A2B'],['Silver','#B7B7B2','#B7B7B2']])},{name:'Size',type:'button',values:[{label:'Small'},{label:'Medium'},{label:'Large'}]}];
@@ -191,7 +192,7 @@ if(PG=='product'){(async()=>{
  const hasSizes=VM&&V.some(v=>v.size);const needSize=hasSizes&&new Set(V.map(v=>v.price)).size>1;
  /* variant mode: size and colour options come from the variant list (each variant has its own price, compare price, stock and SKU) */
  function buildOpts(){if(!VM)return x.options||[];const o=[];
-  const sizes=uniq(V.map(v=>v.size).filter(Boolean)).sort((a,b)=>SZ.indexOf(a)-SZ.indexOf(b));
+  const sizes=uniq(V.map(v=>v.size).filter(Boolean)).sort((a,b)=>{const f=q=>{const i=SZ.indexOf(q);return i<0?99:i};return f(a)-f(b)});
   if(sizes.length)o.push({name:'Size',type:'button',values:sizes.map(s=>({label:s,image:(V.find(v=>v.size==s)||{}).sizeImage,out:V.filter(v=>v.size==s).every(v=>v.stock<=0)}))});
   if(sizes.length&&!sel.Size)return o;
   const inSize=v=>!sizes.length||v.size==sel.Size;const cs=uniq(V.filter(v=>v.colour&&inSize(v)).map(v=>v.colour));
@@ -215,10 +216,11 @@ if(PG=='product'){(async()=>{
  const SDm=x.sizeDims||{},SDk=['Small','Medium','Large'].filter(z=>SDm[z]&&(SDm[z].height||SDm[z].width));
  function drawDim(){const ex=(x.dimensions||[]).map(d=>`<tr><th>${d[0]}</th><td>${d[1]}</td></tr>`).join('');
   const sz=SDk.length?`<table class="dm sz"><thead><tr><th>Size</th><th>Height</th><th>Width</th></tr></thead><tbody>${SDk.map(z=>`<tr class="${sel.Size==z?'cur':''}"><th>${z}</th><td>${esc2(SDm[z].height)||'—'}</td><td>${esc2(SDm[z].width)||'—'}</td></tr>`).join('')}</tbody></table>`:'';
-  $('#dim').outerHTML=`<div id="dim">${sz}${ex?`<table class="dm">${ex}</table>`:''}${!sz&&!ex?'<p class="mut" style="margin-top:10px">Dimensions coming soon.</p>':''}</div>`}
+  const dd=$('#dim').closest('details');if(dd)dd.style.display=(!sz&&!ex)?'none':'';
+  $('#dim').outerHTML=`<div id="dim">${sz}${ex?`<table class="dm">${ex}</table>`:''}</div>`}
  const esc2=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  const grp=GBY[x.id]||GROUP[x.category],guide=x.careGuide||GUIDE[grp];
- $('#mc').innerHTML=`<h4>Material</h4><p>${x.material||'—'}</p>`+(guide?`<h4>Care guide${grp?' · '+grp:''}</h4><ul class="cg">${guide.map(g=>`<li><b>${g[0]}:</b> ${g[1]}</li>`).join('')}</ul>`:'')+(x.care?`<h4>${guide?'Extra notes':'Care'}</h4><p>${x.care}</p>`:'');
+ $('#mc').innerHTML=Object.keys(GUIDE).map(k=>`<h4>${k}</h4><ul class="cg">${GUIDE[k].map(g=>`<li><b>${g[0]}:</b> ${g[1]}</li>`).join('')}</ul>`).join('');
  function drawOpts(){$('#opts').innerHTML=OPTS.map((o,oi)=>`<div class="opt"><p class="ol">${o.name}: <b>${sel[o.name]||'Select'}</b></p><div class="${o.type=='swatch'?'sw':'bt'}" role="group" aria-label="${o.name}">${o.values.map((v,vi)=>o.type=='swatch'?`<button aria-label="${v.label}${v.out?' (sold out)':''}" title="${v.label}${v.out?' (sold out)':''}" aria-pressed="${v.label==sel[o.name]}" class="${v.out?'out':''}" data-o="${oi}" data-v="${vi}" style="background:${v.swatch}"></button>`:`<button aria-pressed="${v.label==sel[o.name]}" class="${v.out?'out':''}" title="${v.out?'Sold out':''}" data-o="${oi}" data-v="${vi}">${v.label}</button>`).join('')}</div></div>`).join('')+(startsFrom()?'<p class="hint">Select a size to see its colours, price and stock.</p>':'')}
  function draw(){OPTS=buildOpts();drawDim();ix=Math.min(ix,views.length-1);$('#main').innerHTML=pic(views[ix],ix);
   $('#thumbs').innerHTML=views.length>1?views.map((s,i)=>`<button aria-label="View photo ${i+1}" aria-pressed="${i==ix}" data-i="${i}">${pic(s,i)}</button>`).join(''):'';
