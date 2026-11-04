@@ -514,3 +514,5 @@ body.pg-ck .top .logo img{height:68px!important}
 .cpo button{background:none;border:0;text-decoration:underline;color:#1f6b2d;cursor:pointer;font:inherit;font-size:13px;flex:none}
 .cpm{min-height:0;margin:6px 0 8px;font-size:13px}.cpm:empty{display:none}.cpm.err{color:#b3261e}.cpm.ok{color:#1f6b2d}
 .cpr input:-webkit-autofill{-webkit-text-fill-color:#1B1B1A;-webkit-box-shadow:0 0 0 40px #fff inset}
+/* hide a landing-page row that has no products */
+#home section:has(.grid:empty){display:none}
