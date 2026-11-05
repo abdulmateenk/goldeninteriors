@@ -84,6 +84,17 @@ function cleanOverrides(o) {
     if (typeof e.dimensions === 'string') r.dimensions = str(e.dimensions, 200);
     if (Array.isArray(e.showOn)) r.showOn = e.showOn.slice(0, 10).map(x => str(x, 30)).filter(Boolean);
     if (e.photos != null) { const v = nn(e.photos, 20); if (v) { r.photos = v; r.pv = nn(e.pv, 9e15) || 1; } }
+    if (Array.isArray(e.variants) && e.variants.length && e.variants.length <= 40) {
+      const vs = [];
+      for (const v of e.variants) {
+        if (!v || typeof v !== 'object') continue;
+        const price = nn(v.price, 100000000); if (!price) continue;
+        const ix = x => { if (x == null || x === '') return null; const n = Number(x); return Number.isInteger(n) && n >= 0 && n < 20 ? n : null; };
+        const sw = String(v.swatch || ''), cmp = nn(v.compareAt, 100000000);
+        vs.push({ sku: str(v.sku, 40), size: str(v.size, 60), colour: str(v.colour, 40), swatch: /^#[0-9a-fA-F]{6}$/.test(sw) ? sw : '', price, compareAt: cmp || null, stock: nn(v.stock, 100000) || 0, colourImage: ix(v.colourImage), sizeImage: ix(v.sizeImage) });
+      }
+      if (vs.length) r.variants = vs;
+    }
     if (Array.isArray(e.also)) r.also = e.also.slice(0, 10).map(x => str(x, 80)).filter(Boolean);
     out[id] = r;
   }
