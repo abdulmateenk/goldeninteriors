@@ -555,3 +555,5 @@ body.pg-ck .top .logo img{height:68px!important}
 @media (min-width:861px){.cats ul#catl{flex-wrap:nowrap!important;justify-content:center;gap:clamp(7px,1vw,22px);padding:0 8px;overflow:visible}.cats a{font-size:clamp(9.5px,.86vw,12.8px);letter-spacing:.03em;white-space:nowrap}.cats .hs{flex:0 0 auto}}
 @media (min-width:861px) and (max-width:1180px){.cats ul#catl{gap:7px}.cats a{font-size:9.5px;letter-spacing:.015em}.cats .cx{padding:6px 1px}}
 @media (min-width:861px) and (max-width:1010px){.cats ul#catl{flex-wrap:wrap!important;row-gap:2px;gap:2px 12px}.cats a{padding-top:7px;padding-bottom:7px}}
+
+@media (min-width:861px){.cats ul#catl a{font-size:var(--cf,clamp(9.5px,.86vw,12.8px))!important}.cats ul#catl.two{flex-wrap:wrap!important;row-gap:2px;gap:2px 14px}.cats ul#catl.two a{padding-top:7px;padding-bottom:7px}}
