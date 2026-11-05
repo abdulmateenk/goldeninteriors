@@ -79,6 +79,7 @@ function cleanOverrides(o) {
     if (e.hidden) r.hidden = true;
     if (typeof e.name === 'string') r.name = str(e.name, 160);
     if (typeof e.tag === 'string') r.tag = str(e.tag, 30);
+    if (typeof e.category === 'string' && e.category.trim()) r.category = str(e.category, 60);
     if (typeof e.description === 'string') r.description = String(e.description).slice(0, 4000);
     if (typeof e.material === 'string') r.material = str(e.material, 200);
     if (typeof e.dimensions === 'string') r.dimensions = str(e.dimensions, 200);
