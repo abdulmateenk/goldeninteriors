@@ -2,7 +2,12 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const R=n=>'Rs. '+Math.round(n).toLocaleString('en-US');
-const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));if(k=='gi-overrides'){clearTimeout(window.__ovT);window.__ovT=setTimeout(()=>{try{if(syncKey())apiConfig('PUT',{overrides:v})}catch(e){}},300)}return true}catch(e){return false}}};
+
+function zc(s){var b=unescape(encodeURIComponent(s)),o=String.fromCharCode(1)+'z';for(var p=0;p<b.length;p+=20000){var t=b.slice(p,p+20000),d=new Map(),n=256,w='',c=[];for(var i=0;i<t.length;i++){var k=t[i],wk=w+k;if(wk.length==1||d.has(wk))w=wk;else{c.push(w.length==1?w.charCodeAt(0):d.get(w));d.set(wk,n++);w=k}}if(w)c.push(w.length==1?w.charCodeAt(0):d.get(w));o+=String.fromCharCode(c.length+32);for(i=0;i<c.length;i++)o+=String.fromCharCode(c[i]+32)}return o}
+function zd(z){var p=2,r='';while(p<z.length){var m=z.charCodeAt(p++)-32,d=[],n=256,w='';for(var i=0;i<m;i++){var c=z.charCodeAt(p++)-32,e;if(c<256)e=String.fromCharCode(c);else if(c<n)e=d[c-256];else e=w+w[0];if(i>0){d[n-256]=w+e[0];n++}w=e;r+=e}}return decodeURIComponent(escape(r))}
+function zget(k,d){try{var v=localStorage.getItem(k);if(!v)return d;return JSON.parse(v.charCodeAt(0)==1?zd(v):v)}catch(e){return d}}
+function zset(k,o){try{localStorage.setItem(k,zc(JSON.stringify(o)));return true}catch(e){return false}}
+const store={get(k,d){return zget(k,d)},set(k,v){try{if(k=='gi-products'){localStorage.setItem(k,zc(JSON.stringify(v)))}else localStorage.setItem(k,JSON.stringify(v));if(k=='gi-overrides'){clearTimeout(window.__ovT);window.__ovT=setTimeout(()=>{try{if(syncKey())apiConfig('PUT',{overrides:v})}catch(e){}},300)}return true}catch(e){return false}}};
 const ROOT=$('#app'),PAGE=ROOT.dataset.ap;
 /* DEMO ONLY: these credentials sit in the page code, so anyone can read them.
    A real site must check the login on your server. */
@@ -28,11 +33,20 @@ async function apiConfig(method,body,key){if(!NET)return{status:0,ok:false,json:
 async function apiPimg(body){if(!NET)return{status:0,ok:false};const k=syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),30000);try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/pimg',{method:'PUT',headers:h,body:JSON.stringify(body),signal:c.signal,cache:'no-store'});return{status:r.status,ok:r.ok}}catch(e){return{status:0,ok:false}}finally{clearTimeout(t)}}
 async function cpCall(method,qs,body){if(!NET)return{status:0,ok:false,json:null};const k=syncKey(),c=new AbortController(),t=setTimeout(()=>c.abort(),40000);try{const h={'Content-Type':'application/json'};if(k)h['x-admin-key']=k;const r=await fetch('/api/cprod'+(qs||''),{method,headers:h,body:body?JSON.stringify(body):undefined,signal:c.signal,cache:'no-store'});let j=null;try{j=await r.json()}catch(e){}return{status:r.status,ok:r.ok,json:j}}catch(e){return{status:0,ok:false,json:null}}finally{clearTimeout(t)}}
 const cpv=()=>store.get('gi-cpv',{});const cpvSet=(id,v)=>{const m=cpv();if(v==null)delete m[id];else m[id]=v;try{localStorage.setItem('gi-cpv',JSON.stringify(m))}catch(e){}};
-async function cpPush(p){const id=p.id,v=Date.now(),imgs=(p.images||[]).filter(x=>typeof x=='string'&&x.indexOf('data:image/')==0);let r=await cpCall('PUT','',{id,v,p});if(!r.ok)return r;for(let i=0;i<imgs.length;i++){r=await cpCall('PUT','',{id,i,img:imgs[i]});if(!r.ok)return r}r=await cpCall('PUT','',{id,v,done:imgs.length});if(r.ok)cpvSet(id,v);return r}
+const cpUrl=(id,i,v)=>'/api/cprod?id='+encodeURIComponent(id)+'&i='+i+'&raw=1&v='+v;
+const isRaw=x=>typeof x=='string'&&x.indexOf('/api/cprod?')==0;
+const toData=u=>fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>new Promise((ok,no)=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=no;f.readAsDataURL(b)}));
+/* photos live on the server and are referenced by link here, so this browser's small storage never fills up */
+const slim=(c,v)=>Object.assign({},c,{images:(c.images||[]).map((x,i)=>cpUrl(c.id,i,v))});
+async function cpPush(p){const id=p.id,v=Date.now(),imgs=[];for(const x of (p.images||[])){if(typeof x!='string')continue;if(x.indexOf('data:image/')==0)imgs.push(x);else if(isRaw(x)){try{imgs.push(await toData(x))}catch(e){return{status:0,ok:false}}}}
+ let r=await cpCall('PUT','',{id,v,p:Object.assign({},p,{images:[]})});if(!r.ok)return r;for(let i=0;i<imgs.length;i++){r=await cpCall('PUT','',{id,i,img:imgs[i]});if(!r.ok)return r}r=await cpCall('PUT','',{id,v,done:imgs.length});if(r.ok){cpvSet(id,v);r.v=v}return r}
+/* replace big embedded photos of products already on the server by links (frees browser storage) */
+function shrinkLocal(loc){const m=cpv();let ch=false;const out=loc.map(c=>{const v=m[c.id];if(v==null||!(c.images||[]).some(x=>typeof x=='string'&&x.indexOf('data:')==0))return c;ch=true;return slim(c,v)});return{out,ch}}
 async function cpSync(){if(!NET)return false;const l=await cpCall('GET','');if(!l.ok||!l.json||!Array.isArray(l.json.list))return false;let loc=getCustom().slice(),ch=false;const sv=new Map(l.json.list.map(x=>[x.id,x.v])),m=cpv();
- for(const [id,v] of sv){const i=loc.findIndex(c=>c.id==id);if(i>=0&&m[id]===v)continue;const r=await cpCall('GET','?id='+encodeURIComponent(id));if(!r.ok||!r.json||!r.json.p)continue;const p=r.json.p,imgs=[];let bad=false;for(let n=0;n<(r.json.n||0);n++){const q=await fetch('/api/cprod?id='+encodeURIComponent(id)+'&i='+n,{cache:'no-store'}).then(x=>x.json()).catch(()=>null);if(!q||!q.img){bad=true;break}imgs.push(q.img)}if(bad)continue;p.images=imgs;if(i>=0)loc[i]=p;else loc.push(p);cpvSet(id,r.json.v);ch=true}
- for(const c of loc.slice()){if(sv.has(c.id))continue;if(m[c.id]!=null){loc=loc.filter(x=>x.id!=c.id);cpvSet(c.id,null);ch=true}else{await cpPush(c)}}
- if(ch){try{localStorage.setItem('gi-products',JSON.stringify(loc))}catch(e){}}return ch}
+ for(const [id,v] of sv){const i=loc.findIndex(c=>c.id==id);if(i>=0&&m[id]===v)continue;const r=await cpCall('GET','?id='+encodeURIComponent(id));if(!r.ok||!r.json||!r.json.p)continue;const p=r.json.p;p.images=[];for(let n=0;n<(r.json.n||0);n++)p.images.push(cpUrl(id,n,r.json.v));if(i>=0)loc[i]=p;else loc.push(p);cpvSet(id,r.json.v);ch=true}
+ for(const c of loc.slice()){if(sv.has(c.id))continue;if(m[c.id]!=null){loc=loc.filter(x=>x.id!=c.id);cpvSet(c.id,null);ch=true}else{const pr=await cpPush(c);if(pr.ok){const k=loc.findIndex(x=>x.id==c.id);if(k>=0)loc[k]=slim(c,pr.v);ch=true}}}
+ const sh=shrinkLocal(loc);if(sh.ch){loc=sh.out;ch=true}
+ if(ch){store.set('gi-products',loc)}return ch}
 const iso=d=>d.toISOString().slice(0,10);
 const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
 const fdate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -320,8 +334,10 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
   const name=$('#pn').value.trim(),id=EP?EP.id:name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now().toString(36);
   const low=V.reduce((a,v)=>v.price<a.price?v:a,V[0]);
   const prod={id,name,category:$('#pc').value,also:$$('#pal input:checked').map(i=>i.value).filter(v=>v!==$('#pc').value),price:low.price,compareAt:low.compareAt,tag:$('#pt').value,stock:V.reduce((a,v)=>a+v.stock,0),description:$('#pd').value.trim(),images:imgs.slice(),variants:V.map(v=>({sku:v.sku,size:v.size,colour:v.colour,swatch:v.swatch,price:v.price,compareAt:v.compareAt,stock:v.stock,sizeImage:v.sizeImage,colourImage:v.colourImage})),showOn:$$('#lp input:checked').map(i=>i.value),sizeDims:(()=>{const o={};$$('#sd tr').forEach(r=>{const h=r.querySelector('[data-d=height]').value.trim(),w=r.querySelector('[data-d=width]').value.trim();if(h||w)o[r.dataset.z]={height:h,width:w}});return o})(),dimensions:$$('#dr .row').map(r=>[r.children[0].value.trim(),r.children[1].value.trim()]).filter(d=>d[0]&&d[1]),material:$('#pm').value.trim(),care:$('#pr').value.trim()};
-  if(!store.set('gi-products',EP?getCustom().map(c=>c.id==EP.id?prod:c):getCustom().concat(prod))){alert('The browser storage is full. Remove a photo or an older product and try again.');return}
-  const sb=$('#pf button[type=submit]');sb.disabled=true;sb.textContent='Saving to the store…';const sr=await cpPush(prod);sb.disabled=false;const sm=sr.ok?'':(sr.status==401?'The server did not accept the admin key, so it is saved on this browser only.':sr.status==413?'The photos are too large for the server, so it is saved on this browser only. Remove a photo and save again.':'The server could not be reached, so it is saved on this browser only. Open Products once while online and it will upload.');
+  const sb=$('#pf button[type=submit]');sb.disabled=true;sb.textContent='Saving to the store…';const sr=await cpPush(prod);sb.disabled=false;
+  {const keep=sr.ok?slim(prod,sr.v):prod,base=shrinkLocal(getCustom()).out,next=EP?base.map(c=>c.id==EP.id?keep:c):base.concat(keep);
+   if(!store.set('gi-products',next)){if(sr.ok){store.set('gi-products',base.filter(c=>c.id!=prod.id))}else{alert('The browser storage is full and the server could not be reached, so this product was not saved. Try again when online.');return}}}
+const sm=sr.ok?'':(sr.status==401?'The server did not accept the admin key, so it is saved on this browser only.':sr.status==413?'The photos are too large for the server, so it is saved on this browser only. Remove a photo and save again.':'The server could not be reached, so it is saved on this browser only. Open Products once while online and it will upload.');
   if(EP){if(sm)alert(sm);location.href='products?saved='+encodeURIComponent(name);return}
   sb.textContent='Save product';addPage(`Saved “${esc(name)}” with ${V.length} variants. <a href="product?id=${id}">View it on the store</a>${sm?'<br><b>'+esc(sm)+'</b>':''}`);scrollTo(0,0)}}
 function productsPage(){

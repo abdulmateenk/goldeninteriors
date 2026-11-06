@@ -37,6 +37,11 @@ module.exports = async (req, res) => {
         const n = Number(i);
         if (!(n >= 0 && n < MAXIMG)) return send(res, 400, { error: 'bad_index' });
         const raw = await cmd(['GET', 'gi:cpi:' + id + ':' + n]);
+        if ((q.raw != null ? q.raw : u.searchParams.get('raw'))) {
+          const m = /^data:(image\/[a-z+]+);base64,(.+)$/s.exec(raw || '');
+          if (!m) { res.statusCode = 404; res.setHeader('Content-Type', 'text/plain'); return res.end('not found'); }
+          res.statusCode = 200; res.setHeader('Content-Type', m[1]); res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable'); return res.end(Buffer.from(m[2], 'base64'));
+        }
         return send(res, 200, { img: raw || '' }, 'public, max-age=0, s-maxage=300');
       }
       const raw = await cmd(['GET', 'gi:cp:' + id]);
