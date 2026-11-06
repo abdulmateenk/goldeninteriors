@@ -37,6 +37,7 @@ const cpUrl=(id,i,v)=>'/api/cprod?id='+encodeURIComponent(id)+'&i='+i+'&raw=1&v=
 const isRaw=x=>typeof x=='string'&&x.indexOf('/api/cprod?')==0;
 const toData=u=>fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>new Promise((ok,no)=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=no;f.readAsDataURL(b)}));
 /* photos live on the server and are referenced by link here, so this browser's small storage never fills up */
+const pUrl=(id,i,v)=>'/api/pimg?id='+encodeURIComponent(id)+'&i='+i+'&raw=1&v='+v;
 const slim=(c,v)=>Object.assign({},c,{images:(c.images||[]).map((x,i)=>cpUrl(c.id,i,v))});
 async function cpPush(p){const id=p.id,v=Date.now(),imgs=[];for(const x of (p.images||[])){if(typeof x!='string')continue;if(x.indexOf('data:image/')==0)imgs.push(x);else if(isRaw(x)){try{imgs.push(await toData(x))}catch(e){return{status:0,ok:false}}}}
  let r=await cpCall('PUT','',{id,v,p:Object.assign({},p,{images:[]})});if(!r.ok)return r;for(let i=0;i<imgs.length;i++){r=await cpCall('PUT','',{id,i,img:imgs[i]});if(!r.ok)return r}r=await cpCall('PUT','',{id,v,done:imgs.length});if(r.ok){cpvSet(id,v);r.v=v}return r}
@@ -409,9 +410,10 @@ function productsPage(){
    if(!sameNow){const btn=$('#ef button[type=submit]');btn.disabled=true;btn.textContent='Saving photos…';
     const pm=(()=>{try{return JSON.parse(localStorage.getItem('gi-pimg')||'{}')}catch(e){return{}}})(),v=Date.now();
     if(sameBase){delete pm[id];delete ov[id].photos;delete ov[id].pv;const r=await apiPimg({id,v,images:[]});if(!r.ok&&r.status&&r.status!=404)pmsg='The original photos are back on this browser, but the server did not confirm it.'}
-    else{const tot=eimgs.reduce((n,u)=>n+u.length,0);if(tot>880000){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent='These photos are too large together ('+Math.round(tot/1024)+' KB; the limit is about 860 KB). Remove a photo or use fewer or smaller photos.';return}
-     const r=await apiPimg({id,v,images:eimgs.slice()});if(!r.ok){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent=r.status==401?'The server did not accept the admin key, so the photos were not saved.':r.status==413?'The photos are too large to save.':'The photos could not be saved to the server. Check the connection and try again.';return}
-     pm[id]={v,images:eimgs.slice()};ov[id].photos=eimgs.length;ov[id].pv=v}
+    else{let up=[];try{for(const u of eimgs)up.push(u.indexOf('data:image/')==0?u:await toData(u))}catch(er){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent='Could not read one of the current photos. Check the connection and try again.';return}
+     const tot=up.reduce((n,u)=>n+u.length,0);if(tot>880000){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent='These photos are too large together ('+Math.round(tot/1024)+' KB; the limit is about 860 KB). Remove a photo or use fewer or smaller photos.';return}
+     const r=await apiPimg({id,v,images:up});if(!r.ok){btn.disabled=false;btn.textContent='Save changes';$('#ee').textContent=r.status==401?'The server did not accept the admin key, so the photos were not saved.':r.status==413?'The photos are too large to save.':'The photos could not be saved to the server. Check the connection and try again.';return}
+     pm[id]={v,images:up.map((u,i)=>pUrl(id,i,v))};ov[id].photos=eimgs.length;ov[id].pv=v}
     try{localStorage.setItem('gi-pimg',JSON.stringify(pm))}catch(er){pmsg='The browser storage is full, so the new photos may not show on this device until it is cleared.'}}
    store.set('gi-overrides',ov);closeM();draw();if(pmsg)alert(pmsg)}};
  pg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
@@ -423,7 +425,7 @@ function productsPage(){
  draw();
  cpSync().then(c=>{if(c)draw()});
  apiConfig('GET').then(r=>{if(!r.ok||!r.json)return;if(r.json.overrides){if(JSON.stringify(r.json.overrides)!==JSON.stringify(getOv())){try{localStorage.setItem('gi-overrides',JSON.stringify(r.json.overrides))}catch(e){}draw()}}
-  if(r.json.overrides&&NET){(async()=>{try{const ov=r.json.overrides,pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');let pc=false;for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0&&(!pm[id]||pm[id].v!==o.pv)){const rr=await fetch('/api/pimg?id='+encodeURIComponent(id),{cache:'no-store'});if(rr.ok){const jj=await rr.json();if(jj&&jj.images&&jj.images.length){pm[id]={v:o.pv,images:jj.images};pc=true}}}}for(const id of Object.keys(pm)){if(!(ov[id]&&ov[id].photos>0)){delete pm[id];pc=true}}if(pc){localStorage.setItem('gi-pimg',JSON.stringify(pm));draw()}}catch(e){}})()}
+  if(r.json.overrides&&NET){(async()=>{try{const ov=r.json.overrides,pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');let pc=false;for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0&&(!pm[id]||pm[id].v!==o.pv||(pm[id].images||[]).some(x=>String(x).indexOf('data:')==0))){const im=[];for(let n=0;n<o.photos;n++)im.push(pUrl(id,n,o.pv));pm[id]={v:o.pv,images:im};pc=true}}for(const id of Object.keys(pm)){if(!(ov[id]&&ov[id].photos>0)){delete pm[id];pc=true}}if(pc){localStorage.setItem('gi-pimg',JSON.stringify(pm));draw()}}catch(e){}})()}
   const ov=getOv();let ch=false;try{if(!localStorage.getItem('gi-restock-1')){[['golden-couple-sculpture',5],['embrace-sculpture',4]].forEach(q=>{ov[q[0]]=Object.assign({},ov[q[0]],{stock:q[1]})});ch=true;localStorage.setItem('gi-restock-1','1');if(syncKey())apiConfig('PUT',{overrides:ov})}}catch(e){}SP.forEach(p=>{if(!ov[p[0]]||ov[p[0]].stock==null){ov[p[0]]=Object.assign({},ov[p[0]],{stock:p[4]});ch=true}});if(ch){store.set('gi-overrides',ov);draw()}else if(!r.json.overrides&&Object.keys(ov).length&&syncKey())apiConfig('PUT',{overrides:ov})})}
 function discountPage(){
  const CAT=catVals();

@@ -424,7 +424,7 @@ if(PG=='search'){const q=(new URLSearchParams(location.search).get('q')||'').tri
  const cats=j.cats?JSON.stringify(j.cats):null;if((localStorage.getItem('gi-cats')||null)!==cats){if(cats)localStorage.setItem('gi-cats',cats);else localStorage.removeItem('gi-cats');ch=true}
  [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule],['gi-settings',j.settings],['gi-overrides',j.overrides],['gi-announce',j.announce]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});
  try{const ov=j.overrides;if(ov&&typeof ov==='object'){const pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');let pc=false;
- for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0){if(!pm[id]||pm[id].v!==o.pv){const rr=await fetch('/api/pimg?id='+encodeURIComponent(id),{cache:'no-store'});if(rr.ok){const jj=await rr.json();if(jj&&Array.isArray(jj.images)&&jj.images.length){pm[id]={v:o.pv,images:jj.images};pc=true}}}}}
+ for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0){if(!pm[id]||pm[id].v!==o.pv||(pm[id].images||[]).some(x=>String(x).indexOf('data:')==0)){const im=[];for(let n=0;n<o.photos;n++)im.push('/api/pimg?id='+encodeURIComponent(id)+'&i='+n+'&raw=1&v='+o.pv);pm[id]={v:o.pv,images:im};pc=true}}}
  for(const id of Object.keys(pm)){if(!(ov[id]&&ov[id].photos>0)){delete pm[id];pc=true}}
  if(pc){localStorage.setItem('gi-pimg',JSON.stringify(pm));ch=true}}}catch(e){}
  try{const lr=await fetch('/api/cprod',{cache:'no-store'});if(lr.ok){const lj=await lr.json();if(lj&&Array.isArray(lj.list)){const sp=zget('gi-sp',{}),ids=new Set(lj.list.map(x=>x.id));let sc=false;

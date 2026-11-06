@@ -25,6 +25,13 @@ module.exports = async (req, res) => {
       const raw = await cmd(['GET', 'gi:pimg:' + id]);
       if (!raw) return send(res, 200, { v: 0, images: [] }, 'public, max-age=0, s-maxage=30');
       let d = null; try { d = JSON.parse(raw); } catch (e) {}
+      const qi = (req.query && req.query.i != null) ? req.query.i : new URL(req.url, 'http://x').searchParams.get('i');
+      if (qi != null && qi !== '') {
+        const one = d && Array.isArray(d.images) ? d.images[parseInt(qi, 10)] : '';
+        const m = /^data:(image\/[a-z+]+);base64,(.+)$/s.exec(one || '');
+        if (!m) { res.statusCode = 404; res.setHeader('Content-Type', 'text/plain'); return res.end('not found'); }
+        res.statusCode = 200; res.setHeader('Content-Type', m[1]); res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable'); return res.end(Buffer.from(m[2], 'base64'));
+      }
       return send(res, 200, { v: d && d.v || 0, images: d && Array.isArray(d.images) ? d.images : [] }, 'public, max-age=0, s-maxage=30');
     }
     if (req.method === 'PUT') {
