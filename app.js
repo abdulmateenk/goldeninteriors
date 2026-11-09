@@ -165,7 +165,7 @@ if(PG=='home'){
  $('#cx2').onclick=()=>{ct.scrollLeft+ct.clientWidth>=ct.scrollWidth-4?ct.scrollTo({left:0,behavior:'smooth'}):ct.scrollBy({left:step(),behavior:'smooth'})};
  setInterval(()=>{if(!ct.matches(':hover'))$('#cx2').click()},4500)}catch(e){console.error('slider',e)}
  /* featured product + two category tiles */
- try{const hasImg=x=>x&&(x.photo||x.svg||(x.imgs&&x.imgs[0])||(x.im&&x.im[0]));const fx=onHome('featured').find(hasImg)||P.find(x=>x.c=='Vases'&&hasImg(x))||P.find(hasImg);
+ try{const hasImg=x=>x&&(x.photo||x.svg||(x.imgs&&x.imgs[0])||(x.im&&x.im[0]));const fx=P.find(x=>x.feat&&hasImg(x))||onHome('featured').find(hasImg)||P.find(x=>x.c=='Vases'&&hasImg(x))||P.find(hasImg);
   if(fx){$('#feat1').style.display='';
    const ph=fx.photo?[fx.photo,fx.photo2,fx.photo3].filter(Boolean):null,n=ph?ph.length:(fx.im?fx.im.length:(fx.imgs?fx.imgs.length:1));
    const view=i=>ph?`<img src="${ph[i]}" alt="${h2(fx.n)}">`:med(fx,i,fx.n);
