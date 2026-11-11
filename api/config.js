@@ -97,6 +97,7 @@ function cleanOverrides(o) {
       if (vs.length) r.variants = vs;
     }
     if (Array.isArray(e.also)) r.also = e.also.slice(0, 10).map(x => str(x, 80)).filter(Boolean);
+    if (e.alsoSet === true) r.alsoSet = true;
     out[id] = r;
   }
   return out;
