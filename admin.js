@@ -243,6 +243,7 @@ function invoicesPage(){const o=getOrders().filter(x=>x.status!='Cancelled');let
 function addPage(banner){
  let imgs=[],cid=0;const SIZES=['One size','Small','Medium','Large'],CATSL=catVals();
  const S={colours:[],rows:{},sku:{}};SIZES.forEach(s=>S.rows[s]={on:s=='One size',price:'',compare:'',photo:'',qty:'',cells:{}});
+ const BASEZ=SIZES.slice();const addRow=(n,on)=>{if(!S.rows[n]){SIZES.push(n);S.rows[n]={on:on!==false,price:'',compare:'',photo:'',qty:'',cells:{}}}return S.rows[n]};
  pg.innerHTML=`<div class="ok2" id="okm" role="status"></div><form id="pf" novalidate>
  <div class="cd2" style="margin-top:0"><h2>1. Product details</h2><div class="fg2">
  <label class="f w">Product name<input id="pn"><span class="e"></span></label>
@@ -252,7 +253,8 @@ function addPage(banner){
  <label class="f w">Description<textarea id="pd" rows="3"></textarea><span class="e"></span></label></div></div>
  <div class="cd2"><h2>2. Photos</h2><p class="mut">Up to 4 photos. The first one is the main image. You can link a photo to a size or colour below. Photos are shrunk and converted to WebP automatically.</p><p class="mut" id="imsg" style="color:var(--ok,#2f7a4b)"></p><div class="drop" id="dz" style="margin-top:10px">Click to choose photos<input type="file" id="fi" accept="image/*" multiple hidden></div><div class="imgs" id="ims"></div></div>
  <div class="cd2"><h2>3. Colours</h2><p class="mut">Add every colour you sell. You choose which colours each size has in the next step. Leave empty if the product has no colour choice.</p><div id="cl"></div><button type="button" class="btn2 o sm" id="ac" style="margin-top:12px">+ Add colour</button></div>
- <div class="cd2"><h2>4. Sizes, prices and stock</h2><p class="mut">Tick each size you sell. For each size set its price and compare price (the higher, crossed-out price), then tick the colours that size comes in and enter the quantity for each. Use “One size” if the product has no sizes.</p><div class="tw" style="margin-top:12px"><div id="mx"></div></div></div>
+ <div class="cd2"><h2>4. Sizes, prices and stock</h2><p class="mut">Tick each size you sell. For each size set its price and compare price (the higher, crossed-out price), then tick the colours that size comes in and enter the quantity for each. Use “One size” if the product has no sizes. For other options such as Single Piece or Set of 2, use “Add your own size or variant” below the table.</p><div class="tw" style="margin-top:12px"><div id="mx"></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:14px"><label class="f" style="flex:1;min-width:200px;margin:0">Add your own size or variant<input id="nsz" maxlength="40" placeholder="e.g. Single Piece, Set of 2, Pair"></label><button type="button" class="btn2 o sm" id="asz">+ Add variant</button></div><p class="mut" id="szm" style="margin-top:6px;font-size:13px">Type a name such as Single Piece or Set of 2, press Add variant, then give it its own price and quantity in the table above.</p></div>
  <div class="cd2"><h2>5. Variants and SKUs <span class="mut" id="vs" style="font:400 14px 'Poppins',sans-serif"></span></h2><div class="tw"><table class="t"><thead><tr><th>SKU (editable)</th><th>Size</th><th>Colour</th><th class="r">Price</th><th class="r">Compare</th><th class="r">Qty</th></tr></thead><tbody id="vp"></tbody></table></div></div>
  <div class="cd2"><h2>6. Dimensions, material and care</h2><p class="mut">Type the height and width for each size, for example “30 in”. A size you leave empty will not show on the product page.</p>
  <div class="tw" style="margin:10px 0 18px"><table class="t sdm"><thead><tr><th>Size</th><th>Height</th><th>Width</th></tr></thead><tbody id="sd">${['Small','Medium','Large'].map(z=>`<tr data-z="${z}"><td><b>${z}</b></td><td><input data-d="height" placeholder="e.g. 24 in" aria-label="${z} height"></td><td><input data-d="width" placeholder="e.g. 16 in" aria-label="${z} width"></td></tr>`).join('')}</tbody></table></div>
@@ -279,7 +281,7 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
  const rowTotal=s=>{const r=S.rows[s];return S.colours.length?Object.values(r.cells).filter(c=>c.on).reduce((a,c)=>a+(parseInt(c.qty)||0),0):(parseInt(r.qty)||0)};
  function drawMx(){const C=S.colours;
   $('#mx').innerHTML=`<table class="t mx"><thead><tr><th>Size</th><th>Price (Rs.)</th><th>Compare price (Rs.)</th>${C.length?C.map(c=>`<th><span class="dot" style="background:${c.hex}"></span>${esc(c.name||'Colour')}<br><small class="mut" style="font-weight:400;text-transform:none;letter-spacing:0">tick + qty</small></th>`).join(''):'<th>Qty</th>'}<th>Photo</th><th class="r">Total qty</th></tr></thead><tbody>${SIZES.map(s=>{const r=S.rows[s],d=r.on?'':'disabled';
-   return`<tr class="${r.on?'':'off'}" data-s="${s}"><td style="white-space:nowrap"><label class="cc"><input type="checkbox" data-sz ${r.on?'checked':''}> <b>${s}</b></label>${C.length&&r.on?`<button type="button" class="btn2 o sm" data-all style="margin-top:6px">All colours</button>`:''}</td>
+   return`<tr class="${r.on?'':'off'}" data-s="${s}"><td style="white-space:nowrap"><label class="cc"><input type="checkbox" data-sz ${r.on?'checked':''}> <b>${esc(s)}</b></label>${BASEZ.includes(s)?'':`<button type="button" class="btn2 d sm" data-rmz style="margin:6px 0 0 6px">Remove</button>`}${C.length&&r.on?`<button type="button" class="btn2 o sm" data-all style="margin-top:6px">All colours</button>`:''}</td>
    <td><input type="number" min="1" data-f="price" value="${esc(r.price)}" ${d}></td><td><input type="number" min="1" data-f="compare" value="${esc(r.compare)}" ${d}></td>
    ${C.length?C.map(c=>{const cell=r.cells[c.id]||{on:false,qty:''};return`<td><label class="cc"><input type="checkbox" data-c="${c.id}" ${cell.on?'checked':''} ${d}><input type="number" min="0" placeholder="Qty" data-q="${c.id}" value="${esc(cell.qty)}" ${r.on&&cell.on?'':'disabled'}></label></td>`}).join(''):`<td><input type="number" min="0" data-f="qty" placeholder="Qty" value="${esc(r.qty)}" ${d}></td>`}
    <td><select data-ph ${d}>${photoOpts(r.photo)}</select></td><td class="r"><b id="tt-${SIZES.indexOf(s)}">${r.on?rowTotal(s):'—'}</b></td></tr>`}).join('')}</tbody></table>`}
@@ -291,16 +293,21 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
  mx.addEventListener('input',e=>{const tr=e.target.closest('tr');if(!tr)return;const s=tr.dataset.s,r=S.rows[s];
   if(e.target.dataset.f){r[e.target.dataset.f]=e.target.value}else if(e.target.dataset.q){const id=e.target.dataset.q;r.cells[id]=r.cells[id]||{on:true,qty:''};r.cells[id].qty=e.target.value}else return;
   const t=$('#tt-'+SIZES.indexOf(s));if(t)t.textContent=rowTotal(s);prev()});
- mx.addEventListener('click',e=>{const b=e.target.closest('[data-all]');if(!b)return;const r=S.rows[b.closest('tr').dataset.s];S.colours.forEach(c=>{r.cells[c.id]=r.cells[c.id]||{on:false,qty:''};r.cells[c.id].on=true});drawMx();prev()});
+ mx.addEventListener('click',e=>{const rb=e.target.closest('[data-rmz]');if(rb){const z=rb.closest('tr').dataset.s;const i=SIZES.indexOf(z);if(i>-1&&!BASEZ.includes(z)){SIZES.splice(i,1);delete S.rows[z];drawMx();prev()}return}const b=e.target.closest('[data-all]');if(!b)return;const r=S.rows[b.closest('tr').dataset.s];S.colours.forEach(c=>{r.cells[c.id]=r.cells[c.id]||{on:false,qty:''};r.cells[c.id].on=true});drawMx();prev()});
+ $('#asz').onclick=()=>{const n=$('#nsz').value.trim().replace(/\s+/g,' ').slice(0,40),m=$('#szm');if(!n){m.textContent='Type a name first, for example Single Piece.';$('#nsz').focus();return}
+  const ex=SIZES.find(z=>z.toLowerCase()==n.toLowerCase());if(ex){S.rows[ex].on=true;m.textContent='“'+ex+'” is already in the table and is now ticked.'}else{addRow(n,true);m.textContent='Added “'+n+'”. Give it a price and quantity in the table.'}
+  $('#nsz').value='';drawMx();prev()};
+ $('#nsz').onkeydown=e=>{if(e.key=='Enter'){e.preventDefault();$('#asz').click()}};
  /* variants and SKUs */
  const prefix=()=>{const v=$('#sk').value.trim().toUpperCase().replace(/[^A-Z0-9-]+/g,'');if(v)return v;const w=$('#pn').value.trim().toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);return 'GI-'+(w.map(x=>x[0]).join('').slice(0,4)||'ITEM')};
- const autoSku=(p,v)=>p+(v.size?'-'+v.size.replace(/one size/i,'OS')[0].toUpperCase():'')+(v.colour?'-'+v.colour.replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase():'');
+ const szCode=z=>{if(/^one size$/i.test(z))return 'OS';if(/^(small|medium|large)$/i.test(z))return z[0].toUpperCase();return (z.match(/[A-Za-z]+|\d+/g)||['X']).map(w=>/^\d/.test(w)?w:w[0]).join('').toUpperCase().slice(0,6)};
+ const autoSku=(p,v)=>p+(v.size?'-'+szCode(v.size):'')+(v.colour?'-'+v.colour.replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase():'');
  function variants(){const out=[],p=prefix();
   SIZES.forEach(s=>{const r=S.rows[s];if(!r.on)return;const size=s=='One size'?'':s,sp=r.photo===''?null:+r.photo;
    const base={size,price:+r.price||0,compareAt:+r.compare||null,sizeImage:sp};
    if(!S.colours.length)out.push(Object.assign({},base,{colour:'',swatch:'',colourImage:null,stock:parseInt(r.qty)||0,key:s+'|',missing:r.qty===''}));
    else S.colours.forEach(c=>{const cell=r.cells[c.id];if(cell&&cell.on)out.push(Object.assign({},base,{colour:c.name||'Colour',swatch:c.hex,colourImage:c.photo===''?null:+c.photo,stock:parseInt(cell.qty)||0,key:s+'|'+c.id,missing:cell.qty===''}))})});
-  out.forEach(v=>{v.sku=S.sku[v.key]||autoSku(p,v)});return out}
+  out.forEach(v=>{v.sku=S.sku[v.key]||autoSku(p,v)});{const seen={};out.forEach(v=>{const k=v.sku;if(seen[k]){let n=++seen[k];while(out.some(x=>x!==v&&x.sku==k+'-'+n))n++;if(!S.sku[v.key])v.sku=k+'-'+n}else seen[k]=1})}return out}
  function prev(){const V=variants();$('#vs').textContent=V.length?`${V.length} variants · ${V.reduce((a,v)=>a+v.stock,0)} units in total`:'';
   $('#vp').innerHTML=V.length?V.map(v=>`<tr><td><input data-k="${esc(v.key)}" value="${esc(v.sku)}" style="min-width:150px"></td><td>${v.size||'One size'}</td><td>${v.colour?`<span class="dot" style="background:${v.swatch}"></span>${esc(v.colour)}`:'—'}</td><td class="r">${v.price?R(v.price):'—'}</td><td class="r">${v.compareAt?R(v.compareAt):'—'}</td><td class="r">${v.stock}</td></tr>`).join(''):'<tr><td colspan="6" class="mut">Tick a size above to create variants.</td></tr>'}
  $('#vp').oninput=e=>{if(e.target.dataset.k)S.sku[e.target.dataset.k]=e.target.value.trim().toUpperCase()};
@@ -313,6 +320,7 @@ $('#fi').onchange=async e=>{window.__imgStat=[];for(const f of [...e.target.file
   Object.entries(EP.sizeDims||{}).forEach(([z,v])=>{const r=$('#sd tr[data-z="'+z+'"]');if(r){r.querySelector('[data-d=height]').value=v.height||'';r.querySelector('[data-d=width]').value=v.width||''}});
   const vs=EP.variants&&EP.variants.length?EP.variants:[{sku:'',size:'',colour:'',price:EP.price,compareAt:EP.compareAt,stock:EP.stock||0}];
   SIZES.forEach(z=>S.rows[z].on=false);
+  vs.forEach(v=>{const z=v.size||'One size';if(!S.rows[z])addRow(z,false)});
   vs.forEach(v=>{let c=null;if(v.colour){c=S.colours.find(k=>k.name==v.colour);if(!c){c={id:++cid,name:v.colour,hex:v.swatch||'#A67C2E',photo:v.colourImage==null?'':String(v.colourImage)};S.colours.push(c)}}
    const z=v.size||'One size',r=S.rows[z];r.on=true;r.price=String(v.price||'');r.compare=v.compareAt?String(v.compareAt):'';r.photo=v.sizeImage==null?'':String(v.sizeImage);
    if(c){r.cells[c.id]={on:true,qty:String(v.stock)};S.sku[z+'|'+c.id]=v.sku}else{r.qty=String(v.stock);S.sku[z+'|']=v.sku}});
