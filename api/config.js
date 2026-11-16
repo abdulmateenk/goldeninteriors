@@ -123,6 +123,51 @@ function cleanPromo(p) {
   if (!p || typeof p !== 'object') return null;
   return { on: !!p.on, text: str(p.text, 160) };
 }
+
+const IMG_REF = /^(|IM:[\w-]{1,24}|\/api\/bimg\?id=[\w-]{1,60})$/;
+const okLink = s => s === '' || /^https?:\/\/[^\s"'<>\\]{1,280}$/i.test(s) || /^[\w\-./?=&#%]{1,300}$/.test(s);
+function cleanSlides(a) {
+  if (!Array.isArray(a) || a.length > 20) return null;
+  const out = [];
+  for (const z of a) {
+    if (!z || typeof z !== 'object') return null;
+    const layout = ['image', 'text', 'clocks'].includes(z.layout) ? z.layout : null;
+    const image = typeof z.image === 'string' ? z.image : '', mob = typeof z.mobileImage === 'string' ? z.mobileImage : '';
+    const link = typeof z.link === 'string' ? z.link.trim() : '';
+    if (!layout || !IMG_REF.test(image) || !IMG_REF.test(mob) || !okLink(link)) return null;
+    out.push({ id: str(z.id, 40) || ('S' + out.length), layout, image, mobileImage: mob, title: str(z.title, 120), subtitle: str(z.subtitle, 300), button: str(z.button, 40), link, active: z.active !== false });
+  }
+  return out;
+}
+function cleanTiles(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  const out = {};
+  for (const k of ['v', 'f']) {
+    const z = t[k]; if (!z) continue;
+    if (typeof z !== 'object') return null;
+    const image = typeof z.image === 'string' ? z.image : '', link = typeof z.link === 'string' ? z.link.trim() : '';
+    if (!IMG_REF.test(image) || !okLink(link)) return null;
+    const o = {}; if (image) o.image = image; if (link) o.link = link;
+    out[k] = o;
+  }
+  return out;
+}
+function cleanCollImg(c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+  const out = {}; const ks = Object.keys(c);
+  if (ks.length > 40) return null;
+  for (const k of ks) {
+    if (!/^[\w\-./?=&]{1,80}$/.test(k) || typeof c[k] !== 'string' || !/^\/api\/bimg\?id=[\w-]{1,60}$/.test(c[k])) return null;
+    out[k] = c[k];
+  }
+  return out;
+}
+function cleanAnnStyle(s) {
+  if (!s || typeof s !== 'object') return null;
+  const hex = v => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) ? v.toLowerCase() : null;
+  const bg = hex(s.bg), fg = hex(s.fg);
+  return bg && fg ? { bg, fg } : null;
+}
 function cleanAnnounce(a) {
   if (!Array.isArray(a) || a.length > 3) return null;
   return a.map(x => str(x, 140)).filter(Boolean);
@@ -136,7 +181,7 @@ module.exports = async (req, res) => {
       let settings = b.settings || null;
       if (settings && !isAdmin(req)) { settings = Object.assign({}, settings); delete settings.notifyTo; }   // the notification address stays private
       const coupons = isAdmin(req) && Array.isArray(b.coupons) ? b.coupons : undefined;
-      return send(res, 200, { coupons, announce: Array.isArray(b.announce) ? b.announce : null, cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
+      return send(res, 200, { coupons, announce: Array.isArray(b.announce) ? b.announce : null, annstyle: cleanAnnStyle(b.annstyle), slides: Array.isArray(b.slides) ? b.slides : null, tiles: b.tiles && typeof b.tiles === 'object' ? b.tiles : null, collimg: b.collimg && typeof b.collimg === 'object' ? b.collimg : null, cats: b.cats || null, discounts: Array.isArray(b.discounts) ? b.discounts : null, promo: b.promo || null, rule: b.rule || null, settings, overrides: b.overrides && typeof b.overrides === 'object' ? b.overrides : null });
     }
     if (req.method === 'PUT') {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
@@ -158,6 +203,22 @@ module.exports = async (req, res) => {
       if ('announce' in b) {
         if (b.announce === null) delete cur.announce;
         else { const n = cleanAnnounce(b.announce); if (!n) return send(res, 400, { error: 'invalid_announce' }); cur.announce = n; }
+      }
+      if ('slides' in b) {
+        if (b.slides === null) delete cur.slides;
+        else { const v = cleanSlides(b.slides); if (!v) return send(res, 400, { error: 'invalid_slides' }); cur.slides = v; }
+      }
+      if ('tiles' in b) {
+        if (b.tiles === null) delete cur.tiles;
+        else { const v = cleanTiles(b.tiles); if (!v) return send(res, 400, { error: 'invalid_tiles' }); cur.tiles = v; }
+      }
+      if ('collimg' in b) {
+        if (b.collimg === null) delete cur.collimg;
+        else { const v = cleanCollImg(b.collimg); if (!v) return send(res, 400, { error: 'invalid_collimg' }); cur.collimg = v; }
+      }
+      if ('annstyle' in b) {
+        if (b.annstyle === null) delete cur.annstyle;
+        else { const s = cleanAnnStyle(b.annstyle); if (!s) return send(res, 400, { error: 'invalid_annstyle' }); cur.annstyle = s; }
       }
       if ('promo' in b) {
         if (b.promo === null) delete cur.promo;

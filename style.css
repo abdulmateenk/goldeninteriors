@@ -564,3 +564,4 @@ footer .fg h3{font-family:"Poppins","Montserrat",system-ui,sans-serif!important;
 
 @media (max-width:860px){.sd.hm{height:auto}.sd.hm>picture{display:block;width:100%}.sd.hm>picture>img.bg{width:100%;height:auto;object-fit:contain;display:block}}
 .cd span,.cd::after{display:none!important}
+.tile span{display:none!important}
