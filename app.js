@@ -150,7 +150,7 @@ if(PG=='home'){
  if(!Array.isArray(SL))SL=SLD_DEF;SL=SL.filter(z=>z&&typeof z=='object');SL=SL.map(z=>z.layout=='clocks'?Object.assign({},z,{layout:'text',image:'IM:ck3o'}):z);SL=SL.filter(z=>z.active!==false);
  const sImg=v=>v&&v.startsWith('IM:')?IM[v.slice(3)]:(v||'');
  $('#tr').innerHTML=SL.map(z=>{const im=sImg(z.image),t=h2(z.title||''),lk=z.link?h2(z.link):'';
-  if(z.layout=='image')return`<a class="sd" ${lk?`href="${lk}"`:''} aria-label="${t}"><img class="bg" src="${im}" alt="${t}"></a>`;
+  if(z.layout=='image'){const mi=sImg(z.mobileImage);return`<a class="sd${mi?' hm':''}" ${lk?`href="${lk}"`:''} aria-label="${t}">${mi?`<picture><source media="(max-width:860px)" srcset="${mi}"><img class="bg" src="${im}" alt="${t}"></picture>`:`<img class="bg" src="${im}" alt="${t}">`}</a>`}
   const rt=z.layout=='clocks'?`<div class="rt">${CK[0].svg+CK[2].svg+CK[3].svg}</div>`:(im?`<div class="rt" style="background-image:url('${im}');${z.image=='IM:ck3o'?'background-position:50% 20%':''}"></div>`:'');
   return`<div class="sd ${z.layout=='clocks'?'s3':'s2'}">${rt}<div class="tx"><small>Golden Interiors</small><h2>${t}</h2>${z.subtitle?`<p>${h2(z.subtitle)}</p>`:''}${z.button&&lk?`<a class="sb" href="${lk}" style="background:var(--gold)">${h2(z.button)}</a>`:''}</div></div>`}).join('');
  const tr=$('#tr'),N=Math.max(SL.length,1);let si=0,st;
