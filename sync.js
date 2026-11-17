@@ -1,0 +1,17 @@
+/* generated: loads the admin's saved settings before the page is drawn */
+function zc(s){var b=unescape(encodeURIComponent(s)),o=String.fromCharCode(1)+'z';for(var p=0;p<b.length;p+=20000){var t=b.slice(p,p+20000),d=new Map(),n=256,w='',c=[];for(var i=0;i<t.length;i++){var k=t[i],wk=w+k;if(wk.length==1||d.has(wk))w=wk;else{c.push(w.length==1?w.charCodeAt(0):d.get(w));d.set(wk,n++);w=k}}if(w)c.push(w.length==1?w.charCodeAt(0):d.get(w));o+=String.fromCharCode(c.length+32);for(i=0;i<c.length;i++)o+=String.fromCharCode(c[i]+32)}return o}
+function zd(z){var p=2,r='';while(p<z.length){var m=z.charCodeAt(p++)-32,d=[],n=256,w='';for(var i=0;i<m;i++){var c=z.charCodeAt(p++)-32,e;if(c<256)e=String.fromCharCode(c);else if(c<n)e=d[c-256];else e=w+w[0];if(i>0){d[n-256]=w+e[0];n++}w=e;r+=e}}return decodeURIComponent(escape(r))}
+function zget(k,d){try{var v=localStorage.getItem(k);if(!v)return d;return JSON.parse(v.charCodeAt(0)==1?zd(v):v)}catch(e){return d}}
+function zset(k,o){try{localStorage.setItem(k,zc(JSON.stringify(o)));return true}catch(e){return false}}
+window.__giSync=async function(){try{if(!/^https?:$/.test(location.protocol))return;const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(!j)return;let ch=false;
+ const cats=j.cats?JSON.stringify(j.cats):null;if((localStorage.getItem('gi-cats')||null)!==cats){if(cats)localStorage.setItem('gi-cats',cats);else localStorage.removeItem('gi-cats');ch=true}
+ [['gi-discounts',j.discounts],['gi-promo',j.promo],['gi-rule',j.rule],['gi-settings',j.settings],['gi-overrides',j.overrides],['gi-announce',j.announce],['gi-annstyle',j.annstyle],['gi-slides',j.slides],['gi-tiles',j.tiles],['gi-collimg',j.collimg]].forEach(([k,v])=>{if(v===null||v===undefined)return;const s=JSON.stringify(v);if(localStorage.getItem(k)!==s){localStorage.setItem(k,s);ch=true}});if(!localStorage.getItem('gi-admin')){['annstyle','slides','tiles','collimg'].forEach(k=>{if(j[k]===null&&localStorage.getItem('gi-'+k)){localStorage.removeItem('gi-'+k);ch=true}})}
+ try{const ov=j.overrides;if(ov&&typeof ov==='object'){const pm=JSON.parse(localStorage.getItem('gi-pimg')||'{}');let pc=false;
+ for(const id of Object.keys(ov)){const o=ov[id];if(o&&o.photos>0){if(!pm[id]||pm[id].v!==o.pv||(pm[id].images||[]).some(x=>String(x).indexOf('data:')==0)){const im=[];for(let n=0;n<o.photos;n++)im.push('/api/pimg?id='+encodeURIComponent(id)+'&i='+n+'&raw=1&v='+o.pv);pm[id]={v:o.pv,images:im};pc=true}}}
+ for(const id of Object.keys(pm)){if(!(ov[id]&&ov[id].photos>0)){delete pm[id];pc=true}}
+ if(pc){localStorage.setItem('gi-pimg',JSON.stringify(pm));ch=true}}}catch(e){}
+ try{const lr=await fetch('/api/cprod',{cache:'no-store'});if(lr.ok){const lj=await lr.json();if(lj&&Array.isArray(lj.list)){const sp=zget('gi-sp',{}),ids=new Set(lj.list.map(x=>x.id));let sc=false;
+ for(const it of lj.list){if(sp[it.id]&&sp[it.id].v===it.v&&!((sp[it.id].p&&sp[it.id].p.images)||[]).some(x=>String(x).indexOf('data:')==0))continue;const mr=await fetch('/api/cprod?id='+encodeURIComponent(it.id),{cache:'no-store'});if(!mr.ok)continue;const mj=await mr.json();if(!mj||!mj.p)continue;const im=[];for(let n=0;n<(mj.n||0);n++)im.push('/api/cprod?id='+encodeURIComponent(it.id)+'&i='+n+'&raw=1&v='+mj.v);mj.p.images=im;sp[it.id]={v:mj.v,p:mj.p};sc=true}
+ for(const id of Object.keys(sp)){if(!ids.has(id)){delete sp[id];sc=true}}
+ if(sc){if(zset('gi-sp',sp))ch=true}}}}catch(e){}
+ return ch}catch(e){return false}};
