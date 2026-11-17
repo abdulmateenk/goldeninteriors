@@ -101,9 +101,8 @@ async function syncOrders(){if(!syncKey())return{state:'nokey'};
  if(gone.length){const left=[];for(const id of gone){const r0=await apiOrders('DELETE',{id});if(!(r0.ok||r0.status==404))left.push(id)}try{localStorage.setItem('gi-deleted',JSON.stringify(left))}catch(e){}gone=left}
  const remote=(g.json.orders||[]).filter(x=>!gone.includes(x.id)),local=(store.get('gi-orders',[])||[]).filter(x=>!gone.includes(x.id)),rm=new Map(remote.map(x=>[x.id,x])),lm=new Map(local.map(x=>[x.id,x]));
  const merged=remote.map(x=>{const l=lm.get(x.id);return l&&String(l.updatedAt||'')>String(x.updatedAt||'')?l:x});
- const only=local.filter(x=>!rm.has(x.id));
- if(only.length&&!localStorage.getItem('gi-pushed')){for(const x of only){x.updatedAt=x.updatedAt||new Date().toISOString();await apiOrders('PUT',{order:x,create:true})}try{localStorage.setItem('gi-pushed','1')}catch(e){}}
- const all=merged.concat(only).sort((a,b)=>idn(b)-idn(a));store.set('gi-orders',all);return{state:'ok',count:remote.length}}
+ /* the server is the single source of truth: an order that is not on the server any more (deleted from another device) is dropped here too, and old local copies are never pushed back */
+ const all=merged.sort((a,b)=>idn(b)-idn(a));store.set('gi-orders',all);return{state:'ok',count:remote.length}}
 const saveOrders=o=>{const prev=new Map((store.get('gi-orders',[])||[]).map(x=>[x.id,strip(x)])),ch=[];
  if(syncKey())o.forEach(x=>{if(prev.get(x.id)!==strip(x)){x.updatedAt=new Date().toISOString();ch.push([x,!prev.has(x.id)])}});
  const ok=store.set('gi-orders',o);ch.forEach(([x,cr])=>apiOrders('PUT',{order:x,create:cr}).then(res=>{if(res.status==409)alert('Order '+x.id+' already exists on the server. Refresh the page.');else if(!res.ok)console.warn('order not synced',res.status)}));return ok};
