@@ -9,7 +9,7 @@ const { cmd, configured } = require('./_kv');
 const { sendOrderEmails } = require('./_mail');
 const coupons = require('./_coupon');
 
-const HASH = 'gi:orders', SEQ = 'gi:orderseq3', FIRST_ID = 28;   // numbering continues from GI-0028: the next customer order is GI-0029
+const HASH = 'gi:orders', SEQ = 'gi:orderseq4', FIRST_ID = 0;   // numbering restarted again: the next customer order is GI-0001
 const STATUS = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Returned', 'Cancelled'];
 const PAY = ['Cash on delivery', 'Bank transfer'];
 
