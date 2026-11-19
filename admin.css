@@ -139,3 +139,5 @@ table.t.ot select,table.t.ot input.tk{width:100%;max-width:none;font-size:13px;p
 #evr .vrow input,#evr .vrow select{width:100%;text-overflow:ellipsis;min-width:0;padding:8px;border:1px solid #d9d9d9;border-radius:6px;font:inherit;font-size:14px}
 #evr .vrow input[type=color]{padding:2px;height:38px}
 @media (max-width:700px){#evr .vrow{grid-template-columns:1fr 1fr;align-items:end}#evr .vrow .sw{grid-column:auto}#evr .vrow button{grid-column:1/-1}}
+
+.imgs .im b{pointer-events:none}@media (pointer:coarse){.imgs .im button{width:30px;height:30px;font-size:16px}.imgs .im .ima button{width:30px;height:28px}.imgs .im{width:104px;height:140px}.imgs .im .ima{bottom:20px}}
